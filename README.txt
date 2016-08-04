@@ -12,7 +12,7 @@ Made on Linux Debian 8.5, x86-64, tested only in Linux Debian 8.5 and Ubuntu 14.
 
 The functions readily available to use are:
 
-findf()               -    "Quick" filesystem search using the library's default parameters.
+findf()                 -    "Quick" filesystem search using the library's default parameters.
 
 findf_fg()              -    Finer-grained search using user defined parameters.
 		       
