@@ -19,7 +19,7 @@
 
 
 /* System wide quick search. */
-findf_results_f *findf(char *file2find,
+findf_results_t *findf(char *file2find,
 		       size_t file2find_len,
 		       bool IS_BUF)
 {
@@ -27,7 +27,7 @@ findf_results_f *findf(char *file2find,
   char **temp = NULL;
   char **rtemp = NULL;
   findf_param_f *findf_param = NULL;
-  findf_results_f *callers_results = NULL;
+  findf_results_t *callers_results = NULL;
 
   /* The only way to verify findf() has failed is to check errno. */
   errno = 0;

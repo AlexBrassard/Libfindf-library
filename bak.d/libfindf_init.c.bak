@@ -18,7 +18,7 @@
 
 /* Library's globals */
 
-findf_list_f *temporary_container;   /* Global list used by all threads as temporary buffer. */
+findf_list_t *temporary_container;   /* Global list used by all threads as temporary buffer. */
 
 #pragma GCC visibility push(default)
 pthread_mutex_t stderr_mutex;        /* Lock to serialize debug messages on stderr stream. */
@@ -41,7 +41,7 @@ int __attribute__ ((constructor)) intern__findf__lib_init(void)
     perror("pthread_key_create");
     return ERROR;
   }
-  /* Initialize the global findf_list_f list. */
+  /* Initialize the global findf_list_t list. */
   if ((temporary_container = intern__findf__init_node(DEF_LIST_SIZE, 0, true)) != RF_OPSUCC){
 
     return ERROR;

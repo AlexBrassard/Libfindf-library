@@ -96,7 +96,7 @@ typedef struct reslist{
   size_t           max_string_len;          
   char             **res_buf;               /* Buffer of results. */
 
-} findf_results_f;
+} findf_results_t;
 
 
 
@@ -133,7 +133,7 @@ typedef struct reslist{
 void *SU_strcpy(char *dest, char *src, size_t n);
 
 /* Straight-forward system-wide search. */
-findf_results_f* findf(char *file2find,
+findf_results_t* findf(char *file2find,
 		       size_t file2find_len,
 		       bool IS_BUF);
 
@@ -162,10 +162,10 @@ findf_param_f* findf_init_param(char **file2find,
 int findf_destroy_param(findf_param_f *to_free);
 
 /* Print all results within a results container to stdout stream. */
-int findf_read_results(findf_results_f *to_read);
+int findf_read_results(findf_results_t *to_read);
 
-/* Release resources of a findf_results_f result container object. */
-int findf_destroy_results(findf_results_f *to_free);
+/* Release resources of a findf_results_t result container object. */
+int findf_destroy_results(findf_results_t *to_free);
 
 
 # pragma GCC visibility pop
