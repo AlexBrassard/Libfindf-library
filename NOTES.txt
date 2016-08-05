@@ -1,0 +1,12 @@
+fri 5/8/16:
+Since early this morning I've been trying to compile the library with
+GCC's -fsanitize=address and -fno-omit-frame-pointer arguments, and none
+of the tests programs are working anymore.
+Valgrind's telling me 'Shadow memory range interleaves with an existing
+memory mapping. ASan cannot proceed correctly. ABORTING.' which makes me
+think some of Libfindf's initialization routine (libfindf_init.c) may be
+happening before libasan actualy sanitized the addresses or something of the likes.
+Did not find all that many information on internet, most people said to simply
+add LD_PRELOAD=libasan to the environment, which doest not work in my case
+(ld complains it can't findf libasan.so).
+I'll keep looking.
