@@ -1,0 +1,250 @@
+./"Man-page
+." Contact " " to correct errors or typos.
+.TH MANPAGE 3 "2016-27-07" "1.0" "Libfindf library's manual"
+
+.SH NAME
+.br
+findf_init_param\ \ \ \ \- initialize a findf_param_f search parameter object.
+.br
+findf_destroy_param \- release resources used by a findf_param_f parameter object.
+
+.SH SYNOPSIS
+
+\fB#include \<findf.h\>\fP
+
+.br
+\fBfindf_param_f* findf_init_param(char\ **\fP\fIfile2find,\fP\ \fBchar\ **\fP\fIsearch_roots\fP,
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBsize_t\fP\ \fInumof_file2find,\fP\ \fBsize_t\fP\ \fInumof_search_roots,\fP
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBunsigned int\fP\ \fImax_inc_dept,\fP\ \fBfindf_type_f\fP\ \fIsearch_type,\fP
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBfindf_sort_type_f\fP\ \fIsort_type\fp\fB);\fP
+
+.br
+\fBint findf_destroy_param(findf_param_f\fP\ \fI*param_obj\fP\fB);\fP
+
+.P
+Compile and link with \fI-lfindf\fP\.
+
+.SH DESCRIPTION
+The \fBfindf_init_param()\fP function takes a pointer to an array of \fBchar*\fP, the filename(s) to search for, a pointer to an array of \fB char*\fP, the directory(ies) to start the search from. \fI'file2find'\fP must contain exactly \fI'numof_file2find'\fP elements of at most \fBF_MAXPATHLEN\fP lenght. \fI'search_roots'\fP must contain exactly \fI'numof_search_roots'\fP elements of at most \fBF_MAXPATHLEN\fP lenght. (\fBF_MAXPATHLEN\fP is defined in \fBfindf.h\fP). \fI'max_inc_dept'\fP is used to set a maximum inclusive dept limit to the search, 0 meaning infinity (relative to the filesystem). \fI'search_type'\fP is one of \fBCUSTOM, BFS, DFS, IDDFS, IDBFS\fP, indicating the search algorithm \fBLibfindf\fP will feed \fBpthread_create()\fP if it judges the workload important enough to use threads. \fI'sort_type'\fP is one of \fBNONE, CUSTOM, SORTP\fP indicating the sorting algorithm used on the results of the search.
+.P
+In exchange for all these parameters, you will be rewarded with a \fBfindf_param_f\fP (see \fBNOTES\fP) containing all required parameters to feed \fBfindf_fg()\fP or \fBfindf_adv()\fP to execute a search. The search's result(s) if any, will be stored, sorted or not depending on the parameter flag, into a \fBfindf_list_f\fP list object (see \fBNOTES\fP), which is part of the search parameter object.
+.P
+It is the responsability of the caller to free the \fBfindf_param_f\fP object using the built-in \fBfindf_destroy_param()\fP function, else memory leaks will occur.
+.P
+The \fBfindf_destroy_param()\fP function takes a pointer to a findf_param_f object initialized by a previous call to \fBfindf_init_param()\fP, and free all resources used by the object. Passing a findf_param_f * not initialized by a prior call to \fBfindf_init_param()\fP result in undefined behaviour.
+
+
+.SH RETURN VALUE
+.br
+If successful, the \fBfindf_init_param()\fP function should return a fully initialized \fBfindf_param_f *\fP, suitable to be passed to \fBfindf_fg()\fP or \fBfindf_adv()\fP functions.
+If NULL is returned, an appropriate error number should be stored into \fIerrno\fP.
+
+If successful, the \fBfindf_destroy_param()\fP function should return 0, else -1 will be returned and an appropriate error code will be stored into \fIerrno\fP.
+
+.SH ERRORS
+.br
+The \fBfindf_init_param()\fP function may fail if:
+.TP 7
+.B EINVAL
+The caller did not pass a valid parameter to \fBfindf_init_param()\fP.
+.TP 7
+.B ENOENT
+The caller passed at least 1 relative pathname to \fBfindf_init_param()\fP.
+.TP 7
+.B ENODATA
+The caller did not pass to \fBfindf_init_param()\fP at least 1 valid filename to search for.
+.P
+The \fBfindf_destroy_param()\fP may fail only if the \fBfindf_param_f *\fP contains an invalid \fBfindf_list_f *\fP list.
+\fIerrno\fP may be set to \fBENODATA\fP if a NULL argument has been passed to \fBfindf_destroy_param()\fP but the function will return with success right away.
+
+.SH EXAMPLES
+This short program demonstrate basic use of \fBfindf_fg()\fP. We create a \fBfindf_param_f\fP object, then execute the search according to this parameter.
+.in
+.SS Program source
+\&
+.nf
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
+#include <findf.h>
+
+/*
+ * Create a parameter object and feed it to findf_fg().
+ * Modify the parameter's values to suit your testing needs.
+ */
+
+int main(void)
+{
+  char **search_roots = NULL;    /* Search will begin into these pathnames. */
+  char **filenames = NULL;       /* Filenames we're looking for. */
+  size_t numof_search_roots = 2; /* We search 2 directories. */
+  size_t numof_filenames = 3;    /* We look for 3 filenames. */
+  size_t i = 0;
+  findf_param_f *sparam = NULL;  /* A search parameter. */
+
+  /* Allocate memory. */
+  if ((search_roots = calloc(numof_search_roots, sizeof(char*))) == NULL){
+    findf_perror("Calloc failure.");
+    return -1;
+  }
+  for (i = 0; i < numof_search_roots; i++)
+    if ((search_roots[i] = calloc(F_MAXPATHLEN, sizeof(char))) == NULL){
+      findf_perror("Calloc failure.");
+      return -1;
+    }
+  if ((filenames = calloc(numof_filenames, sizeof(char*))) == NULL){
+    findf_perror("Calloc failure.");
+    return -1;
+  }
+  for (i = 0; i < numof_filenames; i++)
+    if ((filenames[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
+      findf_perror("Calloc failure.");
+      return -1;
+    }
+
+  /* Pathnames to begin the search into: */
+  if (SU_strcpy(search_roots[0], "/home", F_MAXPATHLEN) == NULL){
+    findf_perror("SU_strcpy failure");
+    return -1;
+  }
+  if (SU_strcpy(search_roots[1], "/usr", F_MAXPATHLEN) == NULL){
+    findf_perror("SU_strcpy failure");
+    return -1;
+  }
+
+  /* Filenames to look for: */
+  if (SU_strcpy(filenames[0], "timezone", F_MAXNAMELEN) == NULL){
+    findf_perror("SU_strcpy failure.");
+    return -1;
+  }
+  if (SU_strcpy(filenames[1], "getopt", F_MAXNAMELEN) == NULL){
+    findf_perror("SU_strcpy failure.");
+    return -1;
+  }
+  if (SU_strcpy(filenames[2], ".bashrc", F_MAXNAMELEN) == NULL){
+    findf_perror("SU_strcpy failure.");
+    return -1;
+  }
+
+
+  /* Initialize the parameter. */
+  if ((sparam = findf_init_param(filenames, search_roots,
+                                 numof_filenames, numof_search_roots,
+                                 0, DFS, SORTP)) == NULL) {
+    findf_perror("Findf_init_param failure");
+    return -1;
+  }
+
+  /* Execture the search. */
+  if (findf_fg(sparam) != 0){
+    findf_perror("Search has failed");
+    return -1;
+  }
+
+  /* Print the results, if any. */
+  printf("\\nsparam->search_results content:\\n");
+  for (i = 0; i < sparam->search_results->position; i++)
+    printf("Result[%lu] is at [%s]\\n",
+           i, sparam->search_results->pathlist[i]);
+
+
+  /* Cleanup behind ourselfs. */
+  if (findf_destroy_param(sparam) != 0){
+    findf_perror("Findf_destroy_param failure.");
+    return -1;
+  }
+  sparam = NULL;
+  for (i = 0; i < numof_search_roots; i++){
+    free(search_roots[i]);
+    search_roots[i] = NULL;
+  }
+  free(search_roots);
+  search_roots = NULL;
+  for (i = 0; i < numof_filenames; i++){
+    free(filenames[i]);
+    filenames[i] = NULL;
+  }
+  free(filenames);
+  filenames = NULL;
+
+  return 0;
+}
+  
+
+.fi
+
+.SH NOTES
+The \fBfindf_list_f\fP object structure is defined in the \fIfindf.h\fP header file:
+.br
+The only way a user should access \fBfindf_list_f\fP objects are from within a \fBfindf_param_f\fP. The complete structure is listed here but only those fields that are relevant to a user are described.
+.br
+(More field may be added in the future.)
+.TP 4
+typedef struct list_f{
+.br
+size_t\ \ \ \ \ \ \ \ \  size;\ \ \ \ \ \ \ \ Maximum number of strings the pathlist can contain.
+.br
+size_t\ \ \ \ \ \ \ \ \  position;\ \ \ \ Index of the first free position of the pathlist.
+.br
+size_t\ \ \ \ \ \ \ \ \ \ list_level;
+.br
+pthread_mutex_t *list_lock;
+.br
+struct\ list_f\ \  *next;
+.br
+char\ \ \ \ \ \ \ \ \ \ \ \ **pathlist;\ \ Array of pointers to strings (pathname(s)).
+.br
+.P
+}findf_list_f;
+
+.P
+The \fBfindf_param_f\fP object structure is defined in the \fIfindf.h\fP header file. Once initialized, it contains all the information needed to search the filesystem.
+.br
+(More fields may be added in the future.)
+.P
+.TP 4
+typedef struct srch_param_f{
+.br
+char\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ **file2find;\ \ \ \ \ \ \ \ \ \ Array of pointer(s) to filename(s) to search for.
+.br
+size_t\ \ \ \ \ \ \ \ \ \ \ \ \ sizeof_file2find;\ \ \ \ \ The number of filename(s) in file2find.
+.br
+findf_list_f\ \ \ \ \ \ \ *search_roots;\ \ \ \ \ \ \ \ Absolute pathnames where to begin the search.
+.br
+size_t\ \ \ \ \ \ \ \ \ \ \ \ \ sizeof_search_roots;\ \ The number of 'root(s) of search'.
+.br
+findf_list_f\ \ \ \ \ \ \ *search_results;\ \ \ \ \ \ List pointer, result(s) of the search, if any.
+.br
+unsigned int\ \ \ \ \ \ \ dept;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Maximum \fIinclusive\fP dept to descend to in the filesystem.
+.br
+findf_type_f\ \ \ \ \ \ \ search_type;\ \ \ \ \ \ \ \ \ \ CUSTOM, DFS, IDDFS, BFS, IDBFS type of algorithm.
+.br
+findf_sort_type_f\ \ sort_type;\ \ \ \ \ \ \ \ \ \ \ \ NONE, CUSTOM, SORTP type of sorting.
+.br
+void*\ \ \ \ \ \ \ \ \ \ \ \ \ \ (*sort_f)(void *);\ \ \ \ Function pointer to a custom sorting routine.
+.br
+void\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *sarg;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Argument passed to a custom sorting routine.
+.br
+void*\ \ \ \ \ \ \ \ \ \ \ \ \ \ (*algorithm)(void *);\ Function pointer to a custom searching algorithm.
+.br
+void\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *arg;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Argument passed to a custom searching algorithm.
+.br
+.P
+}findf_param_f;
+
+.P
+See man \fBfindf_adv(3)\fP for a description of what both function pointers \fIalgorithm\fP and \fIsort_f\fP may do, and how a user may use them. The \fIdept\fP field, when set to a non-zero value, is an \fIaproximative\fP of the level at which the search may stop. 'Level 0' being any of the search roots passed in the \fIsearch_roots\fP field.
+
+.SH SEE ALSO
+.ad l
+.nh
+.BR findf (3),
+.BR findf_fg (3),
+.BR findf_adv (3),
+.BR SU_strcpy (3),
+.BR findf\fP(7)

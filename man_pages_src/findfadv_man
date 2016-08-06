@@ -1,0 +1,72 @@
+./"Man-page
+." Contact " " to correct errors or typos.
+.TH MANPAGE 3 "2016-02-08" "1.0" "Libfindf library's manual"
+
+.SH NAME
+.br
+findf_adv \- Fine-grain advanced file search
+
+.SH SYNOPSIS
+.B
+#include <findf.h>
+
+.br
+\fBint findf_adv(findf_param_f\fP\ \fI*sparam\fP,
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBvoid*\ (\fP\fI*algorithm\fP\fB)(void *)\fP,
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBvoid*\ (\fP\fI*sort_f\fP\fB)(void *)\fP,
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBvoid\ \fP\fI*arg\fP,
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBvoid\ \fP\fI*sarg\fP\fB);\fP
+.P
+Compile and link with \fI-lfindf\fP.
+
+.SH DESCRIPTION
+To be accessible, Libfindf MUST be compiled (or recompiled) with gcc's '-DCW_FINDF_ADVANCED' command-line option. By default, Libfindf is NOT compiled with \fBfindf_adv()\fP for security reasons.
+.P
+The \fBfindf_adv()\fP function is just like \fBfindf_fg()\fP in that it let users customize a \fBfindf_param_f\ *\fP object to their needs but adds the possibility to use an homemade search routine \fI*algorithm\fP and a custom argument \fIarg\fP that will be fed to \fBpthread_create\fP(3) if Libfindf judges the workload important enough to deploy additional threads. It also gives users the possibility to use an homemade sorting routine \fI*sort_f\fP with a custom argument \fIsarg\fP to sort the search's result(s).
+.P
+To effectively use your own search routine, the \fIsearch_type\fP field of the search parameter MUST be set to CUSTOM else Libfindf will use the algorithm set by the \fIsearch_type\fP field of the search parameter.
+.br
+In cases where the parameter's \fIsearch_type\fP field is set to CUSTOM but a NULL \fI*algorithm\fP was given, Libfindf default to a \fBBFS\fP search type, ignores a possible custom arugment and continues.
+.br
+If the search type is properly set to CUSTOM and both \fI*algorithm\fP and \fIarg\fP are set to a non-NULL value, the library internaly feed \fBpthread_create()\fP with the custom algorithm and argument.
+.br
+If the search type is CUSTOM, \fI*algorithm\fP is non-NULL but \fIarg\fP is NULL, the library will feed the findf_param_f object passed to \fPfindf_adv()\fP along with the custom search algorithm to the call to \fBpthread_create\fP.
+.P
+The library verify only if the built-in search functions succeed or not, if a custom search routine is used, users are strongly encouraged to also use a custom search argument and include a "return status" field to the argument since Libfindf does NOT check for success of a custom search function.
+.P
+Unless the \fIsort_type\fP field of the search's parameter is explicitely set to NONE, results (if any) are going to be sorted before being handed back to the caller. By default, the library uses its built-in sortp() sorting algorithm (See \fBfindf_fg\fP(3) NOTES about sortp()).
+.br
+If the \fIsort_type\fP is set to \fBC_SORT\fP (custom sort) and both \fI*sort_f\fP and \fIsarg\fP are non-NULL, the library will call the custom sorting function \fI*sort_f\fP passing it along the caller's given \fIsarg\fP \fBvoid*\fP argument.
+.br
+If the \fIsort_type\fP is set to \fBC_SORT\fP, \fI*sort_f\fP is non-NULL, but \fIsarg\fP is NULL, Libfindf will try to feed the custom sorting routine the caller's findf_param_f object casted to (\fBvoid*\fP).
+.br
+Note that users should NOT rely on this behavious since there is no way to know whether the custom sorting routine has succeed or not. When a custom sorting function is used, it is recommeded to also use a custom argument including a "return status" field to the argument.
+.P
+In any other cases, the library default to the built-in sortp algorithm.
+
+.SH RETURN VALUE
+The \fBfindf_adv()\fP function will return 0 on success and will return -1 on errors setting \fIerrno\fP to an appropriate error code.
+
+.SH ERRORS
+.TP 4
+.B
+EINVAL
+A NULL \fBfindf_param_f\ *\fP argument has been passed.
+
+.SH BUGS
+No known bugs.
+
+.SH EXAMPLE
+None.
+
+.SH SEE ALSO
+.ad l
+.nh
+.BR pthread_create (3),
+.BR findf_fg (3),
+.BR findf_init_param (3),
+.BR findf (7)

@@ -1,0 +1,65 @@
+./"Man-page
+." Contact " " to correct errors or typos.
+.TH MANPAGE 3 "2016-29-07" "1.0" "Libfindf library's manual"
+
+.SH NAME
+.br
+findf_read_results\ \ \ \ \- print to stdout a findf_results_f object
+.br
+findf_destroy_results \- release all resources used by a findf_results_f object
+
+.SH SYNOPSIS
+\fB#include \<findf.h\>\fP
+
+.br
+\fBint findf_read_results(findf_results_f\fP\ \fI*res_obj\fP\fB);\fP
+.br
+\fBint findf_destroy_results(findf_results_f\fP\ \fI*res_obj\fP\fB);\fP
+
+.P
+Compile and link with \fI-lfindf\fP.
+
+.SH DESCRIPTION
+The \fBfindf_read_results()\fP function takes a \fBfindf_results_f *\fP object returned by a previous call to \fBfindf()\fP and print it's content to \fIstdout\fP.
+.br
+An attempt to read an uninitialized \fBfindf_results_f\fP object OR one which was NOT returned by a prior call to \fBfindf()\fP results in undefined behaviour.
+.P
+The \fBfindf_destroy_results()\fP function takes a \fBfindf_results_f *\fP object returned by a previous call to \fBfindf()\fP and
+release all resources used by the object.
+.P
+It is the caller's responsability to ensure \fBfindf_results_f\fP object(s) are freed before program termination (via one or more call(s) to \fBfindf_destroy_results()\fP), else memory leaks will occur.
+
+.SH RETURN VALUE
+On success, both functions returns 0. On error, -1 is set and an appropriate error code is stored in \fIerrno\fP. (See exeption below).
+
+.SH ERROR
+The \fBfindf_read_results()\fP may fail if:
+.TP 4
+EINVAL
+A NULL argument was passed to the function.
+.br
+.P
+The \fBfindf_destroy_results()\fP may set \fIerrno\fP to \fBENODATA\fP if a NULL argument has been passed, but won't fail unless of a major internal failure.
+
+.SH EXAMPLE
+See \fBfindf\fP(3).
+
+.SH NOTE
+The \fBfindf_results_f\fP data type is used exclusively by the \fBfindf()\fP function to store the search's results,\
+if there's any. The object contains all informations that a user may need to manipulate the results. Memory leaks can occur if the user does not properly free the object using the \fBfindf_destroy_results\fP(3) function. As usual, use
+rs are encouraged to NULL the findf_results_f pointer once properly freed by findf_destroy_results().
+.TP 4
+typedef struct reslist {
+.P
+\ \ \ \ size_t\ \ \ numof_elements;\ \ \ \ \ The number of elements within res_buf.
+.br
+\ \ \ \ size_t\ \ \ max_string_len;\ \ \ \ \ Maximum string lenght, before terminating NULL byte.
+.br
+\ \ \ \ char\ \ \ \ \ **res_buf;\ \ \ \ \ \ \ \ \ \ Buffer of pathnames, results from the search.
+.P
+} findf_results_f;
+.P
+ 
+
+.SH SEE ALSO
+\fBfindf\fP(3), \fBfindf\fP(7)

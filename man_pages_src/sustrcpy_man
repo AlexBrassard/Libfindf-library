@@ -1,0 +1,71 @@
+./"Man-page
+." Contact " " to correct errors or typos.
+.TH MANPAGE 3 "2016-01-08" "1.0" "Libfindf library's manual"
+
+.SH NAME
+.br
+SU_strcpy \- Safely copy a string to a destination buffer.
+
+.SH SYNOPSIS
+.B
+#include <findf.h>
+
+.br
+\fBchar* SU_strcpy(char\fP\ \fI*dest\fP\fB,\ char\fP\ \fI*src\fP\fB,\ size_t\fP\ \fIn\fP\fB);\fP
+
+.SH DESCRIPTION
+The \fBSU_strcpy()\fP funtion copies \fIsrc\fP into the caller's given \fIdest\fP previously initialized to \fIn\fP bytes. A terminating NULL byte is added in case none was present in \fIsrc\fP. \fBSU_strcpy()\fP does not allocate memory, it simply is a wrapper arround the standard \fBmemcpy\fP(3) function which makes sure \fIsrc\fP won't overflow the destination buffer as well as making sure the string is NULL terminated.
+
+.SH RETURN VALUE
+On failure, NULL is returned and \fIerrno\fP is set to an appropriate value. On success, \fBSU_strcpy\fP returns a pointer to the destination string \fIdest\fP.
+
+.SH ERRORS
+.TP 4
+.B
+EINVAL
+An invalid parameter was passed to \fBSU_strcpy\fP.
+.TP 4
+.B
+EOVERFLOW
+\fIsrc\fP's lenght is bigger than \fIn\fP - 1.
+
+.SH EXAMPLE
+.in
+.SS Program source
+\&
+.nf
+#include <stdio.h>
+
+#include <findf.h>
+
+/*
+ * Copies the first argument on the command
+ * line to a buffer and print it to stdout.
+ */
+
+int main(int argc, char **argv)
+{
+  char buffer[63]; /* Arbitrary lenght, modify to your needs. */
+
+  if (argc < 2){
+    fprintf(stderr,"%s - Usage: %s [string]\n\n",
+            argv[0], argv[0]);
+    return -1;
+  }
+
+  if (SU_strcpy(buffer, argv[1], 63) == NULL){
+    perror("SU_strcpy");
+    return -1;
+  }
+
+  printf("Buffer is: %s\\0\\n\\n", buffer);
+
+  return 0;
+}
+  
+.fi
+
+.SH SEE ALSO
+.ad l
+.nh
+.BR findf (7)

@@ -1,0 +1,147 @@
+./"Man-page
+." Contact " " to correct errors or typos.
+.TH MANPAGE 3 "2016-29-07" "1.0" "Libfindf library's manual"
+
+.SH NAME
+.br
+findf\ \ \ \ \ \ \ \ \- system-wide "quick" file search
+.br
+findf_fg\ \ \ \ \ \- finer-grained file search
+.br
+findf_perror - Serialized error message printing MACRO
+
+.SH SYNOPSIS
+\fB#include <findf.h>\fP
+
+.br
+\fBfindf_results_f* findf(char\fP\ \fI*file2find\fP,\ \fBsize_t\fP\ \fIfile2find_len\fp,
+.br
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \fBbool\fP\ \fIIS_BUF\fP\fB);\fP
+.br
+\fBint findf_fg(findf_param_f\fP\ \fI*search_param\fP\fB);\fP
+.P
+\fBfindf_perror(\fP\fIstring\fP\fB);\fP
+.P
+Compile and link with \fI-lfindf\fP.
+
+.SH DESCRIPTION
+The \fBfindf()\fP function takes a \fIfile2find\fP filename to search for, the \fIfile2find_len\fP lenght of the filename before its terminating NULL byte up to \fBF_MAXNAMELEN\fP (including the terminating NULL byte), and a \fItrue\fP or \fIfalse\fP value indicating whether the results should be printed to a \fBfindf_results_f\fP container, or to the \fIstdout\fP stream, respectively. When \fBIS_BUF\fP is set to \fItrue\fP and a \fBfindf_results_f\fP pointer is returned, it is the responsability of the caller to eventualy make a call to \fBfindf_destroy_results()\fP to properly free the object.
+.br
+(See \fBfindf_read_results\fP(3) for a description of the \fBfindf_results_f\fP data type).
+.br
+.P
+The \fBfindf_fg()\fP function takes a pointer to a \fBfindf_param_f\fP object, previously initialized by a call to \fBfindf_init_param()\fP. If the search returned any results, they will be stored in the \fIsearch_roots\fP list field of the \fBfindf_param_f\fP object passed to \fBfindf_fg()\fP. Trying to feed \fBfindf_fg()\fP with a search parameter which was NOT initialized by a previous call to \fBfindf_init_param()\fP may result in undefined behaviour.
+.br
+(See \fBfindf_init_param\fP(3) for a description of the \fBfindf_param_f\fP data type).
+.P
+The \fBfindf_perror()\fP function-like MACRO takes a string argument, the error message, and output a formated custom error message on the \fIstderr\fP stream. (See NOTES below).
+.P
+
+.SH RETURN VALUE
+If \fBIS_BUF\fP is set to \fItrue\fP and \fBfindf()\fP returned a NULL value, the search was NOT successful and \fIerrno\fP is set to an appropriate error code. If \fBIS_BUF\fP is set to \fIfalse\fP, the only way of verifying if the search was successful is to verify the value of \fIerrno\fP, as NULL will be returned by \fBfindf()\fP even on success.
+.P
+The \fBfindf_fg()\fP function will return 0 on success, -1 on error with an appropriate error code set in \fIerrno\fP.
+
+.SH ERRORS
+.TP 4
+\fBEINVAL\fP
+A NULL or invalid argument was passed to \fBfindf()\fP or \fBfindf_fg()\fP.
+.TP 4
+\fBENAMETOOLONG\fP
+The \fIfile2find\fP ftilename passed to \fBfindf()\fP is bigger than \fBF_MAXNAMELEN\fP.
+
+.SH BUGS
+No known bugs.
+
+.SH EXAMPLE
+This short program demonstrate a basic use of \fBfindf()\fP to simply print out the results, if any, to the \fIstdout\fP stream.
+.br
+(See \fBfindf_init_param\fP(3) for an example on \fBfindf_fg()\fP).
+.in
+.SS Program souce
+\&
+.nf
+#include <stdio.h>
+#include <errno.h>
+#include <string.>
+
+#include <findf.h>
+
+/*
+ * Takes 1 argument on the command line,
+ * The filename to search for.
+ */
+
+int main(int argc, char **argv)
+{
+	findf_results_f *results = NULL;
+
+	if (argc < 2) {
+	   fprinf(stderr, "%s - Usage: %s [filename_to_search]\\n\\n",
+		  argv[0], argv[0]);
+	   return -1;
+	}
+
+	/* Execute the search. */
+	results = findf(argv[1], strnlen(argv[1], F_MAXNAMELEN), true);
+	if (errno) {
+	   findf_perror("Search has failed.");
+	   return -1;
+	}
+
+	/* Print the results, if any. */
+	if (findf_read_results(results) != 0) {
+	   findf_perror("Failed to read results");
+	   return -1;
+	}
+
+	if (findf_destroy_results(results) != 0){
+	   findf_perror("Failed to free the results object.");
+	   return -1;
+	}
+	results = NULL;
+
+	/*
+	 * Execute the search again,
+	 * this time printing results directly.
+	 */
+
+	 findf(argv[1], strnlen(arg[1], F_MAXNAMELEN), false);
+	 if (errno) {
+	    findf_perror("Search has failed");
+	    return -1;
+	 }
+
+	 return 0;
+
+}
+.fi
+.SH NOTES
+On most system, executing any of the findf* functions for the first time after boot up will result in much longer search times, mainly because the operating system will cache the pathnames as findf* looks them up to accelerate further searches.
+.P
+Libfindf's built-in sort algorithm (sortp()), while doing its job at perfectly sorting the results alphabeticaly, grouped by filenames to search for, the algorithm itself is very unefficient. For a search that returns about 500 results, the overhead of sorting results may be arround 2-3 seconds added to the total execution time which can, in most cases, still be resonable. But with a search returning roughly 1400 results, the execution time may take up to 30-40 seconds more, which can quickly become a burden. Please take note that the time required for sortp() to finish sorting will depend greatly on your system.
+.P
+When expecting many results (500+) from a search, I highly suggest to use \fBfindf_fg()\fP with the sort_type set to \fBNONE\fP or, to use \fBfindf_adv()\fP and implement your own (more perfomant) sorting algorithm.
+.P
+\fBfindf()\fP do sorting by default, and does not offer any way to its caller of changing this behaviour.
+.P
+
+The \fBfindf_perror\fP MACRO is surrounded by a Pthread mutex so the call to \fPperror\fP and \fBfprintf\fP won't be spread out and cause confusing output. the stderr_mutex is used through the whole library to serialize all calls to \fBfprintf(\fP\fIstderr,...\fP\fB)\fP.
+.P
+Example output:
+.P
+\ \ \ \ main: Cannot allocate memory
+.P 
+\ \ \ \ Thread ID [139620662511360]
+.br
+\ \ \ \ In: main @ L40: Calloc failure
+.P
+
+.SH SEE ALSO
+.ad l
+.nh
+.BR findf_init_param (3),
+.BR findf_destroy_param (3),
+.BR findf_read_results (3),
+.BR findf_destroy_results (3),
+.BR findf (7)
