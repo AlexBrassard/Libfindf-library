@@ -6,8 +6,6 @@
 
 # Note that there is no uninstall script at the moment.
 
-# Save PWD to use it later on.
-install_dir="$PWD/"
 
 # File extentions.
 obj=".o"
@@ -56,7 +54,8 @@ MP7_NAMES=( "findf.7.gz" )
 # Careful, these flags are shared between every call to gcc.
 # Input them as a string. (Empty string for no extra arguments.)
 
-# You should not undef QUIET_OPENDIR, it produces lots of output to say the least.
+# Undef QUIET_OPENDIR only for debug purposes and even then, only if you
+# really need to see every directory that gets open internaly.
 CFLAGS=" -O2 -fvisibility=hidden -Wall -Wextra -Wpedantic -Wpointer-arith -Wstrict-prototypes -DQUIET_OPENDIR" 
 
 # Libraries to pass to the linker while creating object files.
@@ -71,7 +70,7 @@ for file in ${FILES[@]}
 do
     if [ -a "$file$obj" ]
     then
-	`rm $file$obj`
+	rm "$file$obj"
 	_mesg_="Removing $file$obj"
 	printf "%-55s OK\n" "$_mesg_"
     else
@@ -87,7 +86,7 @@ do
     if [ -a "$includedir$hfile" ]
     then
 	_mesg_="$_mesg_ $includedir$hfile"
-	`sudo rm -i $includedir$hfile`
+	sudo rm -i "$includedir$hfile"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -102,7 +101,7 @@ _mesg_="Removing $libnam"
 # Remove the old shared library in the current directory if it exists.
 if [ -a "$libnam" ]
 then
-    `rm $libnam`
+    rm "$libnam"
     printf "%-55s OK\n" "$_mesg_"
 else
     printf "%-55s --\n" "$_mesg_"
@@ -116,7 +115,7 @@ do
     then
 	printf "%-55s --\n" "$_mesg_"
     else
-	`sudo cp $newlib$hfile $includedir`
+	sudo cp "$newlib$hfile $includedir"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -125,7 +124,7 @@ do
 	    exit
 	fi
 	_mesg_="Chmod $includedir$hfile permissions to $hperm"
-	`sudo chmod $hperm $includedir$hfile`
+	sudo chmod "$hperm $includedir$hfile"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -142,7 +141,7 @@ do
     if [ -a "$newlib$sfile$src" ]
     then
 	_mesg_="Creating $sfile$obj"
-	`gcc $CFLAGS -c -fPIC $newlib$sfile$src $CLIBS`
+	gcc "$CFLAGS -c -fPIC $newlib$sfile$src $CLIBS"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -165,7 +164,7 @@ do
     fi
 done
 cmd="$cmd $CLIBS"
-`gcc $cmd`
+gcc "$cmd"
 if [ $? != 0 ]
 then  
     printf "%-55s --\n" "$_mesg_"
@@ -183,7 +182,7 @@ then
     _mesg_="$mp3_install exists"
     printf "%-55s\n" "$_mesg_"
 else
-    `sudo mkdir $mp3_install`
+    sudo mkdir "$mp3_install"
     if [ $? == 0 ]
     then
 	_mesg_="Creating $mp3_install\n"
@@ -201,7 +200,7 @@ do
     new_mesg_="$_mesg_ $m3page"
     if [ -a "$mp3_install$m3page" ]
     then
-	`sudo rm -i $mp3_install$m3page`
+	sudo rm -i "$mp3_install$m3page"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$new_mesg_"
@@ -221,7 +220,7 @@ then
     _mesg_="$mp7_install exists"
     printf "%-55s\n" "$_mesg_"
 else
-    `sudo mkdir $mp7_install`
+    sudo mkdir "$mp7_install"
     if [ $? == 0 ]
     then
 	_mesg_=" Creating $mp7_install\n"
@@ -238,7 +237,7 @@ do
     new_mesg_="$_mesg_ $m7page"
     if [ -a "$mp7_install$m7page" ]
     then
-	`sudo rm -i $mp7_install$m7page`
+	sudo rm -i "$mp7_install$m7page"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$new_mesg_"
@@ -257,7 +256,7 @@ _mesg_="Copying new manual page"
 for m3page in ${MP3_NAMES[@]}
 do
     new_mesg_="$_mesg_ $m3page"
-    `sudo cp "$mansrc$m3page" $mp3_install`
+    sudo cp "$mansrc$m3page $mp3_install"
     if [ $? == 0 ]
     then
 	printf "%-55s OK\n" "$new_mesg_"
@@ -272,7 +271,7 @@ _mesg_="Copying new manual page"
 for m7page in ${MP7_NAMES[@]}
 do
     _mesg_="$_mesg_ $m7page"
-    `sudo cp "$mansrc$m7page" $mp7_install`
+    sudo cp "$mansrc$m7page $mp7_install"
     if [ $? == 0 ]
     then
 	printf "%-55s OK\n" "$_mesg_"
@@ -287,7 +286,7 @@ done
 if [ -a "$oldlib" ]
 then
     _mesg_="Removing $oldlib"
-    `sudo rm -i $oldlib`
+    sudo rm -i "$oldlib"
     if [ $? == 0 ]
     then
 	printf "%-55s OK\n" "$_mesg_"
@@ -297,7 +296,7 @@ then
     fi
     
     _mesg_="ldconfig [no_param]"
-    `sudo ldconfig`
+    sudo ldconfig
     if [ $? != 0 ]
     then
 	printf"%-55s --\n" "$_mesg_"
@@ -314,7 +313,7 @@ fi
 
 _mesg_="Copy the new $PWD/$libnam to /usr/lib"
 # Copy the new library to /usr/lib/
-`sudo cp $PWD/$libnam $libdir`
+sudo cp "$PWD/$libnam $libdir"
 if [ $? != 0 ]
 then
     printf "%-55s --\n" "$_mesg_"
@@ -340,7 +339,7 @@ fi
 
 _mesg_="ldconfig [-l] [$libnam]"
 # Run the linker to create dependencies for our new library:
-`sudo ldconfig -l $libnam`
+sudo ldconfig -l "$libnam"
 if [ $? != 0 ]
 then
     printf "%-55s --\n" "$_mesg_"
@@ -355,7 +354,7 @@ cd "$man_install_parent"
 
 # Update the Man database
 _mesg_="Updating mandb"
-`sudo mandb`
+sudo mandb
 if [ $? == 0 ]
 then
     printf "%-55s OK\n" "$_mesg_"
