@@ -136,12 +136,12 @@ void intern__findf__free_tpool(findf_tpool_f *to_free);
 /* Get the maximum allowed number of cpus/cores for our process. */
 size_t intern__findf__get_avail_cpus(void);
 
-/* Initialize a findf_results_f object. */
-findf_results_f *intern__findf__init_res(size_t bufsize,
+/* Initialize a findf_results_t object. */
+findf_results_t *intern__findf__init_res(size_t bufsize,
 					 char **buffer);
 
-/* Destroy a findf_results_f object. */
-void intern__findf__free_res(findf_results_f *to_free);
+/* Destroy a findf_results_t object. */
+void intern__findf__free_res(findf_results_t *to_free);
 
 /* Sort an array of pathnames. */
 int intern__findf__sortp(char **sort_buf,

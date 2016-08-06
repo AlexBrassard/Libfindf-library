@@ -483,13 +483,13 @@ void intern__findf__free_tpool(findf_tpool_f *to_free)
 } /* intern__findf__free_tpool() */
 
 
-findf_results_f *intern__findf__init_res(size_t bufsize,
+findf_results_t *intern__findf__init_res(size_t bufsize,
 					 char **buffer)
 {
   unsigned int i = 0;
-  findf_results_f *to_init = NULL;
+  findf_results_t *to_init = NULL;
 
-  if ((to_init = malloc(sizeof(findf_results_f))) == NULL){
+  if ((to_init = malloc(sizeof(findf_results_t))) == NULL){
     intern_errormesg("Malloc failure");
     return NULL;
   }
@@ -516,7 +516,7 @@ findf_results_f *intern__findf__init_res(size_t bufsize,
 } /* intern__findf__init_res() */
 
 
-void intern__findf__free_res(findf_results_f *to_free)
+void intern__findf__free_res(findf_results_t *to_free)
 {
   unsigned int i = 0;
 

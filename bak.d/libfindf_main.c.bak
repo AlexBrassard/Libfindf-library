@@ -30,7 +30,7 @@ int intern__findf__internal(findf_param_f *callers_param)
   unsigned int  level = 0;                 /* Our location in the filesystem. */
   findf_list_f  *internal_headnode = NULL; /* Temp list, when gathering work for threads. */
   findf_list_f  *internal_nextnode = NULL; /* Pointer to internal_headnode->next. */
-  findf_tpool_f *thread_pool = NULL;       /* Pool of Pthread thread objects. */
+  findf_tpool_t *thread_pool = NULL;       /* Pool of Pthread thread objects. */
   findf_param_f **threads_params = NULL;   /* Array of parameter objects, 1 per thread(s) */
   void          *thread_retval = NULL;     /* Thread return value. */
   size_t         numof_threads = 0;         /* Maximum allowed number of threads for our process. */

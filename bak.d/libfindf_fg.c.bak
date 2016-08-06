@@ -14,7 +14,7 @@
 
 int findf_fg(findf_param_f *search_param)
 {
-  /*  findf_results_f *results = NULL;*/
+  /*  findf_results_t *results = NULL;*/
   
   if (search_param == NULL){
     errno = EINVAL;

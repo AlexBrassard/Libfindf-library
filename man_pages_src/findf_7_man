@@ -1,0 +1,66 @@
+./" Man-page for Libfindf.
+." Contact " " to correct errors or typos.
+.TH MANPAGE 7 "2016-25-07" "1.0" "Libfindf library's man-page"
+.SH NAME
+libfindf \- find a file in the current file system
+
+
+.SH DESCRIPTION
+The Libfindf library is a collection of thread-safe routines to easely search one or more file(s) throught the file system.
+The Libfindf library consist of the following functions:
+.P
+(See their respective man-page for specific information.)
+
+.TP
+.B \- findf();
+System-wide "quick search" 
+
+.TP
+.B \- findf_fg();
+Finer-grained search using a findf_param_f object.
+
+.TP
+.B \- findf_adv();
+Optionaly compiled only if CW_FINDF_ADVANCED is defined to
+a non-zero value at library's compile time.
+
+.TP
+.B \- findf_read_results();
+Read the findf_results_f object optionaly returned by findf().
+
+.TP
+.B \- findf_destroy_results();
+Release resources of a findf_results_f object optionaly 
+returned by findf().
+
+.TP
+.B \- findf_init_param();
+Initialize a findf_param_f object for finer-grained searches.
+
+.TP
+.B \- findf_destroy_param();
+Release resources of a previously initialized findf_param_f object.
+
+.TP
+.B \- SU_strcpy();
+Safely copy a string, ensuring a terminating NULL byte.
+.SH FILES
+
+
+.SH SEE ALSO
+.ad l
+.nh
+.BR findf (3),
+.BR findf_fg (3),
+.BR findf_adv (3),
+.BR findf_read_results (3),
+.BR findf_destroy_results (3),
+.BR findf_init_param (3),
+.BR findf_destroy_param (3),
+.BR SU_strcpy (3)
+
+.SH BUGS
+No known bugs.
+
+.SH AUTHOR
+Alex Brassard (email here)

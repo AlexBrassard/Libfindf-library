@@ -198,8 +198,8 @@ int findf_destroy_param(findf_param_f *to_free)
 }
 
 
-/* Destroy a findf_results_f object. */
-int findf_destroy_results(findf_results_f *to_free)
+/* Destroy a findf_results_t object. */
+int findf_destroy_results(findf_results_t *to_free)
 {
   if (to_free == NULL){
     /* Warn the user by setting errno but return with success. */
@@ -213,8 +213,8 @@ int findf_destroy_results(findf_results_f *to_free)
 }
 
 
-/* Print the content of a findf_results_f object to stdout. */
-int findf_read_results(findf_results_f *to_read)
+/* Print the content of a findf_results_t object to stdout. */
+int findf_read_results(findf_results_t *to_read)
 {
   unsigned int i = 0;
 
