@@ -55,9 +55,12 @@ int findf_adv(findf_param_f *sparam,
       sparam->algorithm = intern__findf__BF_search; /* Default to BFS type of search. */
       sparam->search_type = BFS; /* Adjust the flag to keep the parameter's info straight. */
     }
-
-    if (algorithm_arg != NULL) sparam->arg = algorithm_arg;
-    else sparam->arg = NULL;
+    /* 
+     * _internal knows to try to feed the findf_param_f passed by its caller to 
+     * the custom search function if algorithm_arg has a NULL value.
+     */
+    sparam->arg = algorithm_arg;
+   
   }
   /* 
    * Else, the parameter was created with a search type of BFS, DFS, IDDFS, IDBFS
