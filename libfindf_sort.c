@@ -122,7 +122,7 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
 #ifdef FINDF_SORT_DEBUG
     printf("\nContent of sort_array:\n\"Bucketized only\"\n");
     for (debug_c = 0; debug_c < sizeof_sort_array; debug_c++)
-      printf("sort_array[%lu]: [%s]\n", 
+      printf("sort_array[%zu]: [%s]\n", 
 	     debug_c, sort_buffer[sort_array[debug_c]]);
 #endif /* FINDF_SORT_DEBUG */
     
@@ -146,7 +146,7 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
 #ifdef FINDF_SORT_DEBUG
     printf("\nContent of sorted_array:\nPartly sorted (between step 1 and 2)\n");
     for (debug_c = 0; debug_c < sizeof_sort_array; debug_c++)
-      printf("sorted_array[%lu]: [%s]\n", 
+      printf("sorted_array[%zu]: [%s]\n", 
 	     debug_c, sort_buffer[sorted_array[debug_c]]);
 #endif /* FINDF_SORT_DEBUG */
 
@@ -172,7 +172,7 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
 #ifdef FINDF_SORT_DEBUG
     printf("\nContent of sorted_array:\nCompletely sorted\n");
     for (debug_c = 0; debug_c < sizeof_sort_array; debug_c++)
-      printf("sorted_array[%lu]: [%s]\n", 
+      printf("sorted_array[%zu]: [%s]\n", 
 	     debug_c, sort_buffer[sorted_array[debug_c]]);
 #endif /* FINDF_SORT_DEBUG */
     

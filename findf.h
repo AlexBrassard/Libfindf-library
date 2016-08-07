@@ -25,7 +25,7 @@ extern pthread_mutex_t stderr_mutex;
     if (errno) {						\
       perror(__func__);						\
     }								\
-    fprintf(stderr, "\nThread ID [%lu]\nIn: %s @ L%d: %s\n\n",	\
+    fprintf(stderr, "\nThread ID [%zu]\nIn: %s @ L%d: %s\n\n",	\
 	    pthread_self(),__func__, __LINE__, string);		\
     pthread_mutex_unlock(&stderr_mutex);			\
   } while (0);

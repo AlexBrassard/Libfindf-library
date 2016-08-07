@@ -169,7 +169,7 @@ int intern__findf__internal(findf_param_f *callers_param)
   fprintf(stderr,"Deploying threads here !\n\n");
   for(i = 0; i < thread_pool->num_of_threads; i++)
     for(c = 0; c < threads_params[i]->search_roots->position; c++)
-      fprintf(stderr,"threads_param[%zu]->search_roots[%zu]: %s\n", 
+      fprintf(stderr,"threads_param[%lu]->search_roots[%lu]: %s\n", 
 	      i, c,threads_params[i]->search_roots->pathlist[c]);
   pthread_mutex_unlock(&stderr_mutex);
 #endif /* DEBUG */
@@ -400,7 +400,7 @@ void *intern__findf__BF_search(void *param)
 
 #ifdef DEBUG
   pthread_mutex_lock(&stderr_mutex);
-  fprintf(stderr, "\nThread [%zu]\nWork completed, joining with main Thread.\n\n",
+  fprintf(stderr, "\nThread [%lu]\nWork completed, joining with main Thread.\n\n",
 	  pthread_self());
   pthread_mutex_unlock(&stderr_mutex);
 #endif /* DEBUG */

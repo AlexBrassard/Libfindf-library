@@ -577,7 +577,7 @@ int intern__findf__opendir(char *pathname,
     if (errno == EACCES){
 #ifndef QUIET_OPENDIR
       pthread_mutex_lock(&stderr_mutex);
-      fprintf(stderr, "Thread [%lu]\n%s: %s: Permission denied.\n",
+      fprintf(stderr, "Thread [%zu]\n%s: %s: Permission denied.\n",
 	      pthread_self(), __func__, pathname);
       pthread_mutex_unlock(&stderr_mutex);
 #endif
@@ -595,7 +595,7 @@ int intern__findf__opendir(char *pathname,
     /* We cannot allow any other errors throught. */
 #ifndef QUIET_OPENDIR
     pthread_mutex_lock(&stderr_mutex);
-    fprintf(stderr, "Thread [%lu]\n", pthread_self());
+    fprintf(stderr, "Thread [%zu]\n", pthread_self());
     perror("opendir");
     fprintf(stderr, "\nFaulty: %s\n", pathname);
     pthread_mutex_unlock(&stderr_mutex);
@@ -611,7 +611,7 @@ int intern__findf__opendir(char *pathname,
     if ((readdir_r(dirstream, entry, &res)) != 0){
 #ifndef QUIET_OPENDIR
 	pthread_mutex_lock(&stderr_mutex);
-	fprintf(stderr, "Thread [%lu]\n%s: On entry: %s: Operation not permitted.\n",
+	fprintf(stderr, "Thread [%zu]\n%s: On entry: %s: Operation not permitted.\n",
 		pthread_self(), __func__, entry->d_name);
 	pthread_mutex_unlock(&stderr_mutex);
 #endif /* QUIET_OPENDIR */
@@ -652,7 +652,7 @@ int intern__findf__opendir(char *pathname,
 #ifndef QUIET_OPENDIR
 # ifdef DEBUG
     pthread_mutex_lock(&stderr_mutex);
-    fprintf(stderr,"Thread [%lu]\ntemppathname is: %s\n",
+    fprintf(stderr,"Thread [%zu]\ntemppathname is: %s\n",
 	    pthread_self(), temppathname);
     pthread_mutex_unlock(&stderr_mutex);
 # endif /* DEBUG */

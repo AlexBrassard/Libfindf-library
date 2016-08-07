@@ -30,7 +30,7 @@
     pthread_mutex_lock(&stderr_mutex);					\
     if (errno)								\
       perror(__func__);							\
-    fprintf(stderr, "\nThread [%zu]\nIn %s @ L%d:\n%s\n\n",		\
+    fprintf(stderr, "\nThread [%lu]\nIn %s @ L%d:\n%s\n\n",		\
 	    pthread_self(), __func__, __LINE__, string);		\
     pthread_mutex_unlock(&stderr_mutex);				\
   } while (0) ;
@@ -42,8 +42,8 @@
  */
 static const char DOT[] = ".\0";
 static const char DOTDOT[] = "..\0";
-static const char DOTLEN = 2;
-static const char DOTDOTLEN = 3;
+static const size_t DOTLEN = 2;
+static const size_t DOTDOTLEN = 3;
 
 
 extern findf_list_f *temporary_container;   /* Global list used by all threads as temporary buffer. */

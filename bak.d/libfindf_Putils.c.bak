@@ -222,7 +222,7 @@ int findf_read_results(findf_results_f *to_read)
 
     for (i = 0; i < to_read->numof_elements
 	   && to_read->res_buf[i][0] != '\0'; i++)
-      fprintf(stdout, "Result[%zu] is at [%s]\n",
+      fprintf(stdout, "Result[%lu] is at [%s]\n",
 	      i, to_read->res_buf[i]);
     return RF_OPSUCC;
   }
