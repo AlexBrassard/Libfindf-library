@@ -61,7 +61,7 @@ CFLAGS=" -O2 -fvisibility=hidden -Wall -Wextra -Wpedantic -Wpointer-arith -Wstri
 # Libraries to pass to the linker while creating object files.
 # Input them as a string (Empty string for no extra libraries.)
 
-CLIBS=" -lpthread"
+CLIBS="-lpthread"
 
 
 
@@ -115,7 +115,7 @@ do
     then
 	printf "%-55s --\n" "$_mesg_"
     else
-	sudo cp "$newlib$hfile $includedir"
+	sudo cp "$newlib$hfile" "$includedir"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -124,7 +124,7 @@ do
 	    exit
 	fi
 	_mesg_="Chmod $includedir$hfile permissions to $hperm"
-	sudo chmod "$hperm $includedir$hfile"
+	sudo chmod "$hperm" "$includedir$hfile"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -140,8 +140,11 @@ for sfile in ${FILES[@]}
 do
     if [ -a "$newlib$sfile$src" ]
     then
+	cmd=
 	_mesg_="Creating $sfile$obj"
-	gcc "$CFLAGS -c -fPIC $newlib$sfile$src $CLIBS"
+	# gcc "$CFLAGS" -fPIC -c "$newlib$sfile$src" "$CLIBS"
+	# gcc "$CFLAGS -fPIC -c $newlib$sfile$src $CLIBS"
+	`gcc $CFLAGS -fPIC -c $newlib$sfile$src $CLIBS`
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -164,7 +167,8 @@ do
     fi
 done
 cmd="$cmd $CLIBS"
-gcc "$cmd"
+# gcc "$cmd"
+`gcc $cmd`
 if [ $? != 0 ]
 then  
     printf "%-55s --\n" "$_mesg_"
@@ -173,34 +177,91 @@ else
     printf "%-55s OK\n" "$_mesg_"
 fi
 
-
-# Remove the old man-page(s)
-# Section 3 pages
-# Check if directory exists first.
-if [ -d "$mp3_install" ]
+if [ "${ARGV[1]}" == "-m" ]
 then
-    _mesg_="$mp3_install exists"
-    printf "%-55s\n" "$_mesg_"
-else
-    sudo mkdir "$mp3_install"
-    if [ $? == 0 ]
+    # Remove the old man-page(s)
+    # Section 3 pages
+    # Check if directory exists first.
+    if [ -d "$mp3_install" ]
     then
-	_mesg_="Creating $mp3_install\n"
-	printf "%-55s OK\n" "$_mesg_"
+	_mesg_="$mp3_install exists"
+	printf "%-55s\n" "$_mesg_"
     else
-	_mesg_="Creating $mp3_install\n"
-	printf "%-55s --\n" "$_mesg_"
-	exit
-    fi	
-fi
+	sudo mkdir "$mp3_install"
+	if [ $? == 0 ]
+	then
+	    _mesg_="Creating $mp3_install\n"
+	    printf "%-55s OK\n" "$_mesg_"
+	else
+	    _mesg_="Creating $mp3_install\n"
+	    printf "%-55s --\n" "$_mesg_"
+	    exit
+	fi	
+    fi
     
-_mesg_="Removing man (3) page"
-for m3page in ${MP3_NAMES[@]}
-do
-    new_mesg_="$_mesg_ $m3page"
-    if [ -a "$mp3_install$m3page" ]
+    _mesg_="Removing man (3) page"
+    for m3page in ${MP3_NAMES[@]}
+    do
+	new_mesg_="$_mesg_ $m3page"
+	if [ -a "$mp3_install$m3page" ]
+	then
+	    sudo rm -i "$mp3_install$m3page"
+	    if [ $? == 0 ]
+	    then
+		printf "%-55s OK\n" "$new_mesg_"
+	    else
+		printf "%-55s --\n" "$new_mesg_"
+		exit
+	    fi
+	else
+	    printf "%-55s --\n" "$new_mesg_"
+	    
+	fi
+    done
+    # Section 7 pages
+    # Check if directory exists first.
+    if [ -d "$mp7_install" ]
     then
-	sudo rm -i "$mp3_install$m3page"
+	_mesg_="$mp7_install exists"
+	printf "%-55s\n" "$_mesg_"
+    else
+	sudo mkdir "$mp7_install"
+	if [ $? == 0 ]
+	then
+	    _mesg_=" Creating $mp7_install\n"
+	    printf "%-55s OK\n" "$_mesg_"
+	else
+	    _mesg_="Creating $mp7_install\n"
+	    printf "%-55s --\n" "$_mesg_"
+	    exit
+	fi	
+    fi
+    _mesg_="Removing man (7) page"
+    for m7page in ${MP7_NAMES[@]}
+    do
+	new_mesg_="$_mesg_ $m7page"
+	if [ -a "$mp7_install$m7page" ]
+	then
+	    sudo rm -i "$mp7_install$m7page"
+	    if [ $? == 0 ]
+	    then
+		printf "%-55s OK\n" "$new_mesg_"
+	    else
+		printf "%-55s --\n" "$new_mesg_"
+		exit
+	    fi
+	else
+	    printf "%-55s --\n" "$new_mesg_"
+	fi
+    done
+    
+    # Copy new man-pages
+    # Section 3 pages
+    _mesg_="Copying new manual page"
+    for m3page in ${MP3_NAMES[@]}
+    do
+	new_mesg_="$_mesg_ $m3page"
+	sudo cp "$mansrc$m3page" "$mp3_install"
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$new_mesg_"
@@ -208,79 +269,24 @@ do
 	    printf "%-55s --\n" "$new_mesg_"
 	    exit
 	fi
-    else
-	printf "%-55s --\n" "$new_mesg_"
-	
-    fi
-done
-# Section 7 pages
-# Check if directory exists first.
-if [ -d "$mp7_install" ]
-then
-    _mesg_="$mp7_install exists"
-    printf "%-55s\n" "$_mesg_"
-else
-    sudo mkdir "$mp7_install"
-    if [ $? == 0 ]
-    then
-	_mesg_=" Creating $mp7_install\n"
-	printf "%-55s OK\n" "$_mesg_"
-    else
-	_mesg_="Creating $mp7_install\n"
-	printf "%-55s --\n" "$_mesg_"
-	exit
-    fi	
+    done
+    
+    # Section 7
+    _mesg_="Copying new manual page"
+    for m7page in ${MP7_NAMES[@]}
+    do
+	_mesg_="$_mesg_ $m7page"
+	sudo cp "$mansrc$m7page" "$mp7_install"
+	if [ $? == 0 ]
+	then
+	    printf "%-55s OK\n" "$_mesg_"
+	else
+	    printf "%-55s --\n" "$_mesg_"
+	    exit
+	fi
+    done
+    
 fi
-_mesg_="Removing man (7) page"
-for m7page in ${MP7_NAMES[@]}
-do
-    new_mesg_="$_mesg_ $m7page"
-    if [ -a "$mp7_install$m7page" ]
-    then
-	sudo rm -i "$mp7_install$m7page"
-	if [ $? == 0 ]
-	then
-	    printf "%-55s OK\n" "$new_mesg_"
-	else
-	    printf "%-55s --\n" "$new_mesg_"
-	    exit
-	fi
-    else
-	printf "%-55s --\n" "$new_mesg_"
-    fi
-done
-
-# Copy new man-pages
-# Section 3 pages
-_mesg_="Copying new manual page"
-for m3page in ${MP3_NAMES[@]}
-do
-    new_mesg_="$_mesg_ $m3page"
-    sudo cp "$mansrc$m3page $mp3_install"
-    if [ $? == 0 ]
-    then
-	printf "%-55s OK\n" "$new_mesg_"
-    else
-	printf "%-55s --\n" "$new_mesg_"
-	exit
-    fi
-done
-
-# Section 7
-_mesg_="Copying new manual page"
-for m7page in ${MP7_NAMES[@]}
-do
-    _mesg_="$_mesg_ $m7page"
-    sudo cp "$mansrc$m7page $mp7_install"
-    if [ $? == 0 ]
-    then
-	printf "%-55s OK\n" "$_mesg_"
-    else
-	printf "%-55s --\n" "$_mesg_"
-	exit
-    fi
-done
-
 
 # Remove the old library file
 if [ -a "$oldlib" ]
@@ -313,7 +319,7 @@ fi
 
 _mesg_="Copy the new $PWD/$libnam to /usr/lib"
 # Copy the new library to /usr/lib/
-sudo cp "$PWD/$libnam $libdir"
+sudo cp "$PWD/$libnam" "$libdir"
 if [ $? != 0 ]
 then
     printf "%-55s --\n" "$_mesg_"
