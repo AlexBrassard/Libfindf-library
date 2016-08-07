@@ -12,9 +12,9 @@
 #include <findf.h>
 
 
-int findf_fg(findf_param_t *search_param)
+int findf_fg(findf_param_f *search_param)
 {
-  /*  findf_results_t *results = NULL;*/
+  /*  findf_results_f *results = NULL;*/
   
   if (search_param == NULL){
     errno = EINVAL;

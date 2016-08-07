@@ -20,7 +20,7 @@
 
 #ifdef CW_FINDF_ADVANCED /* "compile with findf_adv()" */
 
-int findf_adv(findf_param_t *sparam,
+int findf_adv(findf_param_f *sparam,
 	      void *(*algorithm)(void *),
 	      void *(*sort_f)(void *),
 	      void *algorithm_arg,
@@ -37,7 +37,7 @@ int findf_adv(findf_param_t *sparam,
   }
   
   /* 
-   * Make sure the findf_param_t parameter was built using
+   * Make sure the findf_param_f parameter was built using
    * the right flags. 
    * Calling findf_adv() with a search_type other than CUSTOM
    * is equivalent to a (valid) call to findf_fg().
@@ -55,9 +55,12 @@ int findf_adv(findf_param_t *sparam,
       sparam->algorithm = intern__findf__BF_search; /* Default to BFS type of search. */
       sparam->search_type = BFS; /* Adjust the flag to keep the parameter's info straight. */
     }
-
-    if (algorithm_arg != NULL) sparam->arg = algorithm_arg;
-    else sparam->arg = NULL;
+    /* 
+     * _internal knows to try to feed the findf_param_f passed by its caller to 
+     * the custom search function if algorithm_arg has a NULL value.
+     */
+    sparam->arg = algorithm_arg;
+   
   }
   /* 
    * Else, the parameter was created with a search type of BFS, DFS, IDDFS, IDBFS
@@ -75,7 +78,7 @@ int findf_adv(findf_param_t *sparam,
     if (sort_f_arg != NULL) sparam->sarg = sort_f_arg;
     /* 
      * _internal() will pass the caller's search parameter object
-     * (findf_param_t *) casted to (void *) to the callers custom
+     * (findf_param_f *) casted to (void *) to the callers custom
      * sort routine, if the custom sort argument is set to NULL.
      */
     else sparam->sarg = NULL;

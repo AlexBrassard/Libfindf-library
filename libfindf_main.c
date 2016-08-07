@@ -19,19 +19,19 @@
 #include "libfindf_private.h"
 
 /* To synchronize results from all deployed threads. */
-extern findf_list_t *temporary_container;
+extern findf_list_f *temporary_container;
 
-int intern__findf__internal(findf_param_t *callers_param)
+int intern__findf__internal(findf_param_f *callers_param)
 {
   size_t        thread_param_pos = 0;      /* To loop through threads parameters. */
   size_t        search_roots_c = 0;        /* To loop through callers_param->search_roots. */
   size_t        i = 0;                     /* Convinient loop counter. */
   size_t        intheadnode_c = 0;         /* Loop through internal_headnode. */
   unsigned int  level = 0;                 /* Our location in the filesystem. */
-  findf_list_t  *internal_headnode = NULL; /* Temp list, when gathering work for threads. */
-  findf_list_t  *internal_nextnode = NULL; /* Pointer to internal_headnode->next. */
-  findf_tpool_t *thread_pool = NULL;       /* Pool of Pthread thread objects. */
-  findf_param_t **threads_params = NULL;   /* Array of parameter objects, 1 per thread(s) */
+  findf_list_f  *internal_headnode = NULL; /* Temp list, when gathering work for threads. */
+  findf_list_f  *internal_nextnode = NULL; /* Pointer to internal_headnode->next. */
+  findf_tpool_f *thread_pool = NULL;       /* Pool of Pthread thread objects. */
+  findf_param_f **threads_params = NULL;   /* Array of parameter objects, 1 per thread(s) */
   void          *thread_retval = NULL;     /* Thread return value. */
   size_t         numof_threads = 0;         /* Maximum allowed number of threads for our process. */
   /* Goto label advance_to_cleanup;           In case the search terminates earlier. */
@@ -65,7 +65,7 @@ int intern__findf__internal(findf_param_t *callers_param)
    * Allocate memory to the array of parameters, then let _init_param handle
    * each elements individualy. 
    */
- if ((threads_params = calloc(numof_threads, sizeof(findf_param_t))) == NULL){
+ if ((threads_params = calloc(numof_threads, sizeof(findf_param_f))) == NULL){
     perror("calloc");
     return ERROR;
   }
@@ -176,7 +176,7 @@ int intern__findf__internal(findf_param_t *callers_param)
 
   /* 
    * Send each of our threads through the caller's algorithm routine,
-   * passing each threads a findf_param_t parameter.
+   * passing each threads a findf_param_f parameter.
    * If the search type is CUSTOM and a non NULL void* ->arg has been fed,
    * use it, else if either conditions is not met, use the library's built-ins.
    */
@@ -236,7 +236,7 @@ int intern__findf__internal(findf_param_t *callers_param)
 	 * the ->sort_f function pointer is non-NULL but
 	 * the caller has not provided us with a custom (void*)arg for
 	 * the custom sorting routine, try to call the custom sorting routine 
-	 * passing it a findf_param_t pointer object casted to void *.
+	 * passing it a findf_param_f pointer object casted to void *.
 	 * Note that users should not rely on this behaviour since theres no way 
 	 * of determining whether the sorting routine has succeed or not.
 	 */
@@ -294,9 +294,9 @@ void *intern__findf__BF_search(void *param)
 {
   size_t       i = 0;                            /* Convinient loop counter. */
   unsigned int level = 0;                        /* Current level of the search. 0 being search_roots. */
-  findf_list_t *headnode = NULL;                 /* Headnode of BF_search's linked-list. */
-  findf_list_t *nextnode = NULL;                    
-  findf_param_t *t_param = NULL;                 /* Search parameter given by our caller. */
+  findf_list_f *headnode = NULL;                 /* Headnode of BF_search's linked-list. */
+  findf_list_f *nextnode = NULL;                    
+  findf_param_f *t_param = NULL;                 /* Search parameter given by our caller. */
 
 
   if (param == NULL){
@@ -310,7 +310,7 @@ void *intern__findf__BF_search(void *param)
 #endif /* DEBUG */
 
   /* Get back our original parameter. */
-  t_param = (findf_param_t *)param;
+  t_param = (findf_param_f *)param;
 
   /* We need a linked-list. */
   if ((headnode = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL) {
@@ -419,9 +419,9 @@ void *intern__findf__DF_search(void *param)
   unsigned int       level = 0;                            /* Our position in the filetree. */
   size_t             search_roots_c = 0;                   /* Count of current dir in search_roots. */
   size_t             head_root_c = 0;                      /* Count of current dir in headnode. */
-  findf_list_t       *headnode = NULL;                     /* Linked-list's headnode. */
-  findf_list_t       *nextnode = NULL;                     /* Linked-list's next node. */
-  findf_param_t      *t_param = NULL;                      /* Caller's parameter object. */
+  findf_list_f       *headnode = NULL;                     /* Linked-list's headnode. */
+  findf_list_f       *nextnode = NULL;                     /* Linked-list's next node. */
+  findf_param_f      *t_param = NULL;                      /* Caller's parameter object. */
 
   if (param == NULL){
     intern_errormesg("Invalid or empty search parameters\n");
@@ -432,16 +432,16 @@ void *intern__findf__DF_search(void *param)
   fprintf(stderr, "\nDFS Start\n\n");
   pthread_mutex_unlock(&stderr_mutex);
   /* Get back our findf parameter. */
-  t_param = ((findf_param_t *)param);
+  t_param = ((findf_param_f *)param);
   
   /* Initialize DF_search linked-list's head and next nodes. */
   if ((headnode = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL){
-    intern_errormesg("Failed to initialize a findf_list_t node.\n");
+    intern_errormesg("Failed to initialize a findf_list_f node.\n");
     return NULL;
   }
 
   if ((headnode->next = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL){
-    intern_errormesg("Failed to initialize a findf_list_t node.\n");
+    intern_errormesg("Failed to initialize a findf_list_f node.\n");
     return NULL;
   }
   nextnode = headnode->next;

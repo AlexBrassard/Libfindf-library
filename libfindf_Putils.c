@@ -20,8 +20,8 @@
 #include "libfindf_private.h"   /* Private header file. */
 
 
-/* Initialize a findf_param_t object. */
-findf_param_t *findf_init_param(char **file2find,
+/* Initialize a findf_param_f object. */
+findf_param_f *findf_init_param(char **file2find,
 				char **search_roots,
 				size_t numof_file2find,
 				size_t numof_search_roots,
@@ -33,7 +33,7 @@ findf_param_t *findf_init_param(char **file2find,
   char **def_root_array = NULL; /* Array of 1 pathname, DEF_UNIX_ROOT. */
   size_t i = 0;
   size_t f2f_c = 0;
-  findf_param_t *to_init = NULL;
+  findf_param_f *to_init = NULL;
 
   if (((numof_file2find > 0 && numof_file2find < SIZE_MAX - 1)
        && max_inc_dept < UINT_MAX - 1)  /* Can be 0, meaning infinity. */
@@ -181,8 +181,8 @@ findf_param_t *findf_init_param(char **file2find,
   }
   return to_init;
 }
-/* Destroy a findf_param_t object. */
-int findf_destroy_param(findf_param_t *to_free)
+/* Destroy a findf_param_f object. */
+int findf_destroy_param(findf_param_f *to_free)
 {
   if (to_free == NULL){
     /* Warn user by setting errno to EINVAL but return with success. */
@@ -198,8 +198,8 @@ int findf_destroy_param(findf_param_t *to_free)
 }
 
 
-/* Destroy a findf_results_t object. */
-int findf_destroy_results(findf_results_t *to_free)
+/* Destroy a findf_results_f object. */
+int findf_destroy_results(findf_results_f *to_free)
 {
   if (to_free == NULL){
     /* Warn the user by setting errno but return with success. */
@@ -213,8 +213,8 @@ int findf_destroy_results(findf_results_t *to_free)
 }
 
 
-/* Print the content of a findf_results_t object to stdout. */
-int findf_read_results(findf_results_t *to_read)
+/* Print the content of a findf_results_f object to stdout. */
+int findf_read_results(findf_results_f *to_read)
 {
   size_t i = 0;
 

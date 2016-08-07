@@ -38,17 +38,17 @@
 
 /* List operations: */
 
-/* Initialize a single findf_list_t node. */
-findf_list_t *intern__findf__init_node(size_t size,
+/* Initialize a single findf_list_f node. */
+findf_list_f *intern__findf__init_node(size_t size,
 				       size_t list_level_s,
 				       bool ISGLOBAL)
 {
-  findf_list_t *to_init = NULL;
+  findf_list_f *to_init = NULL;
   size_t tempsize = (size > 0 && size > DEF_LIST_SIZE) ? size : DEF_LIST_SIZE;
   size_t i = 0;
   
-  /* Init the findf_list_t object. */
-  if ((to_init = malloc(sizeof(findf_list_t))) == NULL){
+  /* Init the findf_list_f object. */
+  if ((to_init = malloc(sizeof(findf_list_f))) == NULL){
     perror("malloc");
     return NULL;
   }
@@ -94,7 +94,7 @@ findf_list_t *intern__findf__init_node(size_t size,
 
 
 
-int intern__findf__free_node(findf_list_t *to_free)
+int intern__findf__free_node(findf_list_f *to_free)
 {
   size_t i = 0;
   if (to_free == NULL){
@@ -124,7 +124,7 @@ int intern__findf__free_node(findf_list_t *to_free)
   to_free->next = NULL;
   to_free->pathlist = NULL;
   
-  /* Release resource of the findf_list_t object itself now. */
+  /* Release resource of the findf_list_f object itself now. */
   free(to_free);
   to_free = NULL;
 
@@ -134,9 +134,9 @@ int intern__findf__free_node(findf_list_t *to_free)
 
 
 
-int intern__findf__destroy_list(findf_list_t *headnode)
+int intern__findf__destroy_list(findf_list_f *headnode)
 {
-  findf_list_t *tmp = NULL;
+  findf_list_f *tmp = NULL;
 
   if (headnode == NULL){
     errno = EINVAL;
@@ -157,12 +157,12 @@ int intern__findf__destroy_list(findf_list_t *headnode)
  * Cleanup all fields of 'headnode', swap it with the next node.
  * Reusing the list helps Libfindf save alot of memory allocations.
  */
-findf_list_t *intern__findf__shift_node(findf_list_t *headnode)
+findf_list_f *intern__findf__shift_node(findf_list_f *headnode)
 {
 
   size_t i = 0;
-  findf_list_t *saved_old_head = NULL;
-  findf_list_t *saved_old_next = NULL;
+  findf_list_f *saved_old_head = NULL;
+  findf_list_f *saved_old_next = NULL;
   
   if ((headnode != NULL)
       && (headnode->next != NULL)) {
@@ -191,7 +191,7 @@ findf_list_t *intern__findf__shift_node(findf_list_t *headnode)
 
 
 int intern__findf__add_element(char *element,
-			       findf_list_t *list)
+			       findf_list_f *list)
 {
   char **tmp = NULL;   /* In case we need a bigger list. */
   size_t tmpsize = 0; 
@@ -251,7 +251,7 @@ int intern__findf__add_element(char *element,
 
 
 /* Parameter operations: */
-findf_param_t *intern__findf__init_param(char **_file2find,
+findf_param_f *intern__findf__init_param(char **_file2find,
 					 char **search_roots,
 					 size_t numof_file2find,
 					 size_t numof_search_roots,
@@ -264,7 +264,7 @@ findf_param_t *intern__findf__init_param(char **_file2find,
 					 void *arg)
 
 {
-  findf_param_t *to_init = NULL;
+  findf_param_f *to_init = NULL;
   size_t i;
 
 
@@ -277,7 +277,7 @@ findf_param_t *intern__findf__init_param(char **_file2find,
    */
   
   /* Allocate memory to the parameter object itself. */
-  if ((to_init = malloc(sizeof(findf_param_t))) == NULL){
+  if ((to_init = malloc(sizeof(findf_param_f))) == NULL){
     perror("malloc");
     return NULL;
   }
@@ -335,7 +335,7 @@ findf_param_t *intern__findf__init_param(char **_file2find,
 }
 
 
-int intern__findf__free_param(findf_param_t *to_free)
+int intern__findf__free_param(findf_param_f *to_free)
 {
   size_t i;
    
@@ -432,7 +432,7 @@ int intern__findf__path_forward(char *dest,
 } /* intern__findf__path_forward() */
 
 
-void intern__findf__cmp_file2find(findf_param_t *t_param,
+void intern__findf__cmp_file2find(findf_param_f *t_param,
 				  char *entry_to_cmp,
 				  char *entry_full_path)
 {
@@ -451,15 +451,15 @@ void intern__findf__cmp_file2find(findf_param_t *t_param,
 } /* intern__findf__cmp_file2find() */
 
 
-findf_tpool_t *intern__findf__init_tpool(unsigned long numof_threads)
+findf_tpool_f *intern__findf__init_tpool(unsigned long numof_threads)
 {
-  findf_tpool_t *to_init = NULL;
+  findf_tpool_f *to_init = NULL;
   
-  if ((to_init = malloc(sizeof(findf_tpool_t))) == NULL){
+  if ((to_init = malloc(sizeof(findf_tpool_f))) == NULL){
     perror("malloc");
     return NULL;
   }
-  memset(to_init, 0, sizeof(findf_tpool_t));
+  memset(to_init, 0, sizeof(findf_tpool_f));
   to_init->num_of_threads = numof_threads;
 
   if ((to_init->threads = calloc(to_init->num_of_threads , sizeof(pthread_t))) == NULL){
@@ -470,10 +470,10 @@ findf_tpool_t *intern__findf__init_tpool(unsigned long numof_threads)
 
   return to_init;
 
-} /* intern__findf__tpool_t() */
+} /* intern__findf__tpool_f() */
 
 
-void intern__findf__free_tpool(findf_tpool_t *to_free)
+void intern__findf__free_tpool(findf_tpool_f *to_free)
 {
   free(to_free->threads);
   to_free->threads = NULL;
@@ -483,13 +483,13 @@ void intern__findf__free_tpool(findf_tpool_t *to_free)
 } /* intern__findf__free_tpool() */
 
 
-findf_results_t *intern__findf__init_res(size_t bufsize,
+findf_results_f *intern__findf__init_res(size_t bufsize,
 					 char **buffer)
 {
   unsigned int i = 0;
-  findf_results_t *to_init = NULL;
+  findf_results_f *to_init = NULL;
 
-  if ((to_init = malloc(sizeof(findf_results_t))) == NULL){
+  if ((to_init = malloc(sizeof(findf_results_f))) == NULL){
     intern_errormesg("Malloc failure");
     return NULL;
   }
@@ -516,7 +516,7 @@ findf_results_t *intern__findf__init_res(size_t bufsize,
 } /* intern__findf__init_res() */
 
 
-void intern__findf__free_res(findf_results_t *to_free)
+void intern__findf__free_res(findf_results_f *to_free)
 {
   unsigned int i = 0;
 
@@ -557,8 +557,8 @@ void intern__findf__free_res(findf_results_t *to_free)
  */
 
 int intern__findf__opendir(char *pathname,
-			   findf_list_t *nextnode,
-			   findf_param_t *t_param)
+			   findf_list_f *nextnode,
+			   findf_param_f *t_param)
 {
   char temppathname[F_MAXPATHLEN] = "";         /* Directory we're working on. */
   DIR *dirstream = NULL;                      /* Stream returned by opendir(). */

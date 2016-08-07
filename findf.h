@@ -37,15 +37,15 @@ extern pthread_mutex_t stderr_mutex;
  * which is the total number of N elements in the pathlist[N][F_MAXPATHLEN] array,
  * and position, which is the first free B position of the pathlist[B][F_MAXPATHLEN] array.
  */
-typedef struct list_t {
+typedef struct list_f {
   size_t          size;                   /* Size of the outer pathlist array. */
   size_t          position;               /* Position of the first free element of pathlist. */
   size_t          list_level;             /* Filesystem 'level' of the current node's pathlist. */
   pthread_mutex_t *list_lock;             /* Pointer to a Pthread mutex in case of a global list. */
-  struct list_t   *next;                  /* Next node in the linked-list. */
+  struct list_f   *next;                  /* Next node in the linked-list. */
   char            **pathlist;             /* Array of strings (absolute pathnames). */
 
-} findf_list_t;
+} findf_list_f;
 
 /* Libfindf 'Type of search' flag data type. */
 typedef enum srch_type_f {
@@ -66,12 +66,12 @@ typedef enum sort_type_f {
 } findf_sort_type_f;
 
 /* Libfindf search parameter data structure. */
-typedef struct srch_param_t {
+typedef struct srch_param_f {
   char              **file2find;            /* Array of strings (Filenames). */
   size_t            sizeof_file2find;       /* Number of elements within file2find. */
-  findf_list_t      *search_roots;          /* List pointer, 'search of root' absolute pathnames. */
+  findf_list_f      *search_roots;          /* List pointer, 'search of root' absolute pathnames. */
   size_t            sizeof_search_roots;    /* Number of elements within search_roots list. */
-  findf_list_t      *search_results;        /* List pointer, results of the search. */
+  findf_list_f      *search_results;        /* List pointer, results of the search. */
   unsigned int      dept;                   /* Maximum inclusive dept to search the filesystem. */
   findf_type_f      search_type;            /* CUSTOM, DFS, IDDFS, BFS, IDBFS types of algorithm. */
   findf_sort_type_f sort_type;              /* NONE, CUSTOM, SORTP types of sort. */
@@ -80,14 +80,14 @@ typedef struct srch_param_t {
   void              *(*algorithm)(void *);  /* Pointer to a custom search algorithm. */
   void              *arg;                   /* Argument passed to a custom search algorithm. */
 
-} findf_param_t;
+} findf_param_f;
 
 /* Libfindf thread pool data structure. */
-typedef struct tpool_t{
+typedef struct tpool_f{
   unsigned long    num_of_threads;          /* Number of threads within the pool. */
   pthread_t        *threads;                /* Array of num_of_threads pthread_t object. */
 
-} findf_tpool_t;
+} findf_tpool_f;
 
 /* Libfindf, findf() specific, results data structure. */
 typedef struct reslist{
@@ -96,7 +96,7 @@ typedef struct reslist{
   size_t           max_string_len;          
   char             **res_buf;               /* Buffer of results. */
 
-} findf_results_t;
+} findf_results_f;
 
 
 
@@ -107,7 +107,7 @@ typedef struct reslist{
 /* Maximum allowed lenght of pathnames. (Built-in default = (Pathname = /name/ * 15)). */
 #define F_MAXPATHLEN 4096               /* Arbitrary. Admins may change it to fit their systems' needs. */
 
-/* Default findf_list_t initial size. */
+/* Default findf_list_f initial size. */
 #define DEF_LIST_SIZE 512               /* Aribtrary. Admins may change it to fit their systems' needs. */
 
 /* Maximum lenght of names. */ 
@@ -133,24 +133,24 @@ typedef struct reslist{
 void *SU_strcpy(char *dest, char *src, size_t n);
 
 /* Straight-forward system-wide search. */
-findf_results_t* findf(char *file2find,
+findf_results_f* findf(char *file2find,
 		       size_t file2find_len,
 		       bool IS_BUF);
 
 /* Fine-grained search. */
-int findf_fg(findf_param_t *search_param);
+int findf_fg(findf_param_f *search_param);
 
 #ifdef CW_FINDF_ADVANCED
 /* Advanced, fine-grained search. */
-int findf_adv(findf_param_t *search_param,
+int findf_adv(findf_param_f *search_param,
 	      void* (*algorithm)(void *),
 	      void* (*sort)(void *),
 	      void *arg,
 	      void *sarg);
 #endif /* CW_FINDF_ADVANCED */
 
-/* Initialize a findf_param_t search parameter object. */
-findf_param_t* findf_init_param(char **file2find,
+/* Initialize a findf_param_f search parameter object. */
+findf_param_f* findf_init_param(char **file2find,
 				char **search_roots,
 				size_t numof_file2find,
 				size_t numof_search_roots,
@@ -158,14 +158,14 @@ findf_param_t* findf_init_param(char **file2find,
 				findf_type_f search_type,
 				findf_sort_type_f sort_type);
 
-/* Release resources of a findf_param_t search parameter object. */
-int findf_destroy_param(findf_param_t *to_free);
+/* Release resources of a findf_param_f search parameter object. */
+int findf_destroy_param(findf_param_f *to_free);
 
 /* Print all results within a results container to stdout stream. */
-int findf_read_results(findf_results_t *to_read);
+int findf_read_results(findf_results_f *to_read);
 
-/* Release resources of a findf_results_t result container object. */
-int findf_destroy_results(findf_results_t *to_free);
+/* Release resources of a findf_results_f result container object. */
+int findf_destroy_results(findf_results_f *to_free);
 
 
 # pragma GCC visibility pop

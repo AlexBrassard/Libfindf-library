@@ -16,13 +16,13 @@ findf()                 -    "Quick" filesystem search using the library's defau
 
 findf_fg()              -    Finer-grained search using user defined parameters.
 		       
-findf_init_param()      -    Initialize a findf_param_t object pointer.
+findf_init_param()      -    Initialize a findf_param_f object pointer.
 
-findf_destroy_param()   -    Free a findf_param_t object pointer.
+findf_destroy_param()   -    Free a findf_param_f object pointer.
 
-findf_read_results()    -    Read a findf_results_t object pointer returned by a call to findf().
+findf_read_results()    -    Read a findf_results_f object pointer returned by a call to findf().
 
-findf_destroy_results() -    Free a findf_results_t object pointer returned by a call to findf().
+findf_destroy_results() -    Free a findf_results_f object pointer returned by a call to findf().
 
 SU_strcpy()		-    Safely copy a string to a buffer.
 

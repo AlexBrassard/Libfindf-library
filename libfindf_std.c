@@ -19,15 +19,15 @@
 
 
 /* System wide quick search. */
-findf_results_t *findf(char *file2find,
+findf_results_f *findf(char *file2find,
 		       size_t file2find_len,
 		       bool IS_BUF)
 {
   unsigned int i = 0;
   char **temp = NULL;
   char **rtemp = NULL;
-  findf_param_t *findf_param = NULL;
-  findf_results_t *callers_results = NULL;
+  findf_param_f *findf_param = NULL;
+  findf_results_f *callers_results = NULL;
 
   /* The only way to verify findf() has failed is to check errno. */
   errno = 0;
@@ -86,9 +86,9 @@ findf_results_t *findf(char *file2find,
 					       BFS,  /* BFS-like search algorithm (built-in). */
 					       SORTP,/* Built-in sorting algorithm. */
 					       NULL, /* Using _sortp(). */
-					       NULL, /* Using findf_param_t object's results list. */
+					       NULL, /* Using findf_param_f object's results list. */
 					       intern__findf__BF_search, 
-					       NULL)) == NULL) { /* Using a findf_param_t object. */
+					       NULL)) == NULL) { /* Using a findf_param_f object. */
     findf_perror("Failed to initialize a search parameter object.");
     return NULL;
   }
