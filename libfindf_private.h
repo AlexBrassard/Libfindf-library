@@ -42,8 +42,8 @@
  */
 static const char DOT[] = ".\0";
 static const char DOTDOT[] = "..\0";
-static const char DOTLEN = 2;
-static const char DOTDOTLEN = 3;
+static const size_t DOTLEN = 2;
+static const size_t DOTDOTLEN = 3;
 
 
 extern findf_list_f *temporary_container;   /* Global list used by all threads as temporary buffer. */

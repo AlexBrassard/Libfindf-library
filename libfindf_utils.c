@@ -103,30 +103,24 @@ int intern__findf__free_node(findf_list_f *to_free)
   }
 
   /* Free the pathlist array of strings. */
-  for (i = 0; i < to_free->size; i++)
+  for (i = 0; i < to_free->size; i++){
     free(to_free->pathlist[i]);
+    to_free->pathlist[i] = NULL;
+  }
   free(to_free->pathlist);
-  
   /* Check if we had a Pthread mutex initialized. */
   if (to_free->list_lock != NULL){
     if (pthread_mutex_destroy(to_free->list_lock) != 0){
       perror("pthread_mutex_destroy");
-      return ERROR;
+      /* Don't return an error, try and free what's left. */
     }
     free(to_free->list_lock);
+    to_free->list_lock = NULL;
   }
-  
-  /* Null all fields. */
-  to_free->size = '\0';
-  to_free->position = '\0';
-  to_free->list_level = '\0';
-  to_free->list_lock = NULL;
   to_free->next = NULL;
-  to_free->pathlist = NULL;
   
   /* Release resource of the findf_list_f object itself now. */
   free(to_free);
-  to_free = NULL;
 
   return RF_OPSUCC;
 
@@ -177,7 +171,7 @@ findf_list_f *intern__findf__shift_node(findf_list_f *headnode)
   headnode->position = 0;
   headnode->list_level = headnode->next->list_level + 1;
   for (i = 0; i < headnode->size; i++)
-    memset(headnode->pathlist[i], 0 ,F_MAXPATHLEN - 1);
+    memset(headnode->pathlist[i], 0 , F_MAXPATHLEN);
   /* Flip the 'nextnode' with the headnode. */
   saved_old_next = headnode->next;
   saved_old_head = headnode;
@@ -355,18 +349,18 @@ int intern__findf__free_param(findf_param_f *to_free)
   to_free->search_roots = NULL;
   to_free->search_results = NULL;
   to_free->file2find = NULL;
-  to_free->sizeof_file2find = '\0';
+  /*  to_free->sizeof_file2find = '\0';
   to_free->sizeof_search_roots = '\0';
   to_free->dept = '\0';
   to_free->search_type = '\0';
-  to_free->sort_type = '\0';
+  to_free->sort_type = '\0';*/
   to_free->sort_f = NULL;
   to_free->sarg = NULL;
   to_free->algorithm = NULL;
   to_free->arg = NULL;
 
   free(to_free);
-  to_free = NULL;
+  /*  to_free = NULL;*/
 
 
   return RF_OPSUCC;
@@ -479,7 +473,7 @@ void intern__findf__free_tpool(findf_tpool_f *to_free)
   to_free->threads = NULL;
   to_free->num_of_threads = '\0';
   free(to_free);
-  to_free = NULL;
+  /*to_free = NULL;*/
 } /* intern__findf__free_tpool() */
 
 
