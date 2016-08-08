@@ -56,7 +56,7 @@ MP7_NAMES=( "findf.7.gz" )
 
 # Undef QUIET_OPENDIR only for debug purposes and even then, only if you
 # really need to see every directory that gets open internaly.
-CFLAGS=" -O2 -fvisibility=hidden -Wall -Wextra -Wpedantic -Wpointer-arith -Wstrict-prototypes -DQUIET_OPENDIR" 
+CFLAGS=" -O2 -std=gnu99 -fvisibility=hidden -Wall -Wextra -Wpedantic -Wpointer-arith -Wstrict-prototypes -DQUIET_OPENDIR" 
 
 # Libraries to pass to the linker while creating object files.
 # Input them as a string (Empty string for no extra libraries.)
@@ -144,7 +144,7 @@ do
 	_mesg_="Creating $sfile$obj"
 	# gcc "$CFLAGS" -fPIC -c "$newlib$sfile$src" "$CLIBS"
 	# gcc "$CFLAGS -fPIC -c $newlib$sfile$src $CLIBS"
-	`gcc $CFLAGS -fPIC -c $newlib$sfile$src $CLIBS`
+	gcc $CFLAGS -fPIC -c "$newlib$sfile$src" $CLIBS
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -168,7 +168,7 @@ do
 done
 cmd="$cmd $CLIBS"
 # gcc "$cmd"
-`gcc $cmd`
+gcc $cmd
 if [ $? != 0 ]
 then  
     printf "%-55s --\n" "$_mesg_"

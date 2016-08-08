@@ -44,25 +44,27 @@ findf_list_f *intern__findf__init_node(size_t size,
 				       bool ISGLOBAL)
 {
   findf_list_f *to_init = NULL;
+  char *error_mesg = NULL;
   size_t tempsize = (size > 0 && size > DEF_LIST_SIZE) ? size : DEF_LIST_SIZE;
   size_t i = 0;
+  /* goto label  init_node_err;        Clean-up on error */
   
   /* Init the findf_list_f object. */
   if ((to_init = malloc(sizeof(findf_list_f))) == NULL){
-    perror("malloc");
-    return NULL;
+    error_mesg = "Malloc";
+    goto init_node_err;
   }
   
   /* Init the list's array of strings. */
   if ((to_init->pathlist = calloc(tempsize, sizeof(char*))) == NULL){
-    perror("calloc");
-    return NULL;
+    error_mesg = "Calloc";
+    goto init_node_err;
   }
   
   for (i = 0; i < tempsize; i++)
     if ((to_init->pathlist[i] = calloc(F_MAXPATHLEN, sizeof(char))) == NULL){
-      perror("calloc");
-      return NULL;
+      error_mesg = "Calloc";
+      goto init_node_err;
     }
   
   /* 
@@ -71,12 +73,12 @@ findf_list_f *intern__findf__init_node(size_t size,
    */
   if (ISGLOBAL == true){
     if ((to_init->list_lock = malloc(sizeof(pthread_mutex_t))) == NULL){
-      perror("malloc");
-      return NULL;
+      error_mesg = "Malloc";
+      goto init_node_err;
     }
     if (pthread_mutex_init(to_init->list_lock, NULL) != 0){
-      perror("pthread_mutex_init");
-      return NULL;
+      error_mesg = "Pthread_mutex_init";
+      goto init_node_err;
     }
   }
   else
@@ -89,7 +91,21 @@ findf_list_f *intern__findf__init_node(size_t size,
   to_init->next = NULL;
  
   return to_init;
-  
+
+ init_node_err:
+  if (to_init){
+    if (to_init->pathlist){
+      for (i = 0; i < tempsize; i++){
+	if (to_init->pathlist[i]){
+	  free(to_init->pathlist[i]);
+	}
+      }
+      free(to_init->pathlist);
+    }
+    free(to_init);
+  }
+  perror(error_mesg);
+  return NULL;
 } /* intern__findf__init_node() */
 
 
