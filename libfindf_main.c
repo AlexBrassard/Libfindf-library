@@ -95,7 +95,8 @@ int intern__findf__internal(findf_param_f *callers_param)
       if (intern__findf__add_element(callers_param->search_roots->pathlist[search_roots_c++],
 				     internal_headnode) != RF_OPSUCC){
 	intern_errormesg("Failed to add element to internal node.\n");
-	return ERROR;
+	/*return ERROR;*/
+	goto advance_to_cleanup;
       }
     
     /* Begin processing the headnode. */
@@ -117,7 +118,8 @@ int intern__findf__internal(findf_param_f *callers_param)
 				 internal_nextnode,
 				 callers_param) != RF_OPSUCC){
 	intern_errormesg("Failed to open directory from internal node.\n");
-	return ERROR;
+	/*	return ERROR;*/
+	goto advance_to_cleanup;
       }
       
       if (intheadnode_c < internal_headnode->position)
@@ -142,7 +144,8 @@ int intern__findf__internal(findf_param_f *callers_param)
       if (intern__findf__add_element(internal_nextnode->pathlist[i],
 				     threads_params[thread_param_pos]->search_roots) != RF_OPSUCC){
 	intern_errormesg("Failed to add a new element to a thread parameter.\n");
-	return ERROR;
+	/*return ERROR;*/
+	goto advance_to_cleanup;
       }
       thread_param_pos++;
     }
@@ -158,7 +161,8 @@ int intern__findf__internal(findf_param_f *callers_param)
       if (intern__findf__add_element(callers_param->search_roots->pathlist[i],
 				     threads_params[thread_param_pos]->search_roots) != RF_OPSUCC){
 	intern_errormesg("Failed to add a new element to a thread parameter.\n");
-	return ERROR;
+	/*	return ERROR;*/
+	goto advance_to_cleanup;
       }
       thread_param_pos++;
     }
@@ -188,14 +192,16 @@ int intern__findf__internal(findf_param_f *callers_param)
 		       : ((void*)threads_params[i])) != 0){
 		       
       intern_errormesg("Failed to create a new thread\n");
-      return ERROR;
+      /*      return ERROR;*/
+      goto advance_to_cleanup;
     }
   
   for (i = 0; i < numof_threads; i++)
     if ((pthread_join(thread_pool->threads[i], &thread_retval) != 0)
 	|| ((unsigned long int)thread_retval != 1)){
       intern_errormesg("Failed to join a thread\n");
-      return ERROR;
+      /*return ERROR;*/
+      goto advance_to_cleanup;
     }
   
  
@@ -208,7 +214,8 @@ int intern__findf__internal(findf_param_f *callers_param)
     if (intern__findf__add_element(temporary_container->pathlist[i],
 			     callers_param->search_results) != RF_OPSUCC){
       intern_errormesg("Failed to add a new element to the caller's parameter object.\n");
-      return ERROR;
+      /*      return ERROR;*/
+      goto advance_to_cleanup;
     }
   pthread_mutex_unlock(temporary_container->list_lock);
   /* Don't bother checking the sort type if there's nothing to sort. */
