@@ -10,3 +10,13 @@ Did not find all that many information on internet, most people said to simply
 add LD_PRELOAD=libasan to the environment, which doest not work in my case
 (ld complains it can't findf libasan.so).
 I'll keep looking.
+
+
+Mon 8/8/16:
+Every time I call pthread_self() in a (f)printf call, I by mistake changed the format
+string from %lu to %zu, which on my system are the same.
+Are they always the same?
+How can I know whether the pthread_t type is a long unsigned or an integer or w.e?
+Any available MACRO?
+It would not be nice for a system admin to have to change all format strings in which
+pthread_self() is involved..
