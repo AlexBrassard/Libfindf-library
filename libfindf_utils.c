@@ -728,7 +728,7 @@ size_t intern__findf__get_avail_cpus(void)
 void *SU_strcpy(char *dest, char *src, size_t n)
 {
   size_t src_s = 0;
-  size_t dest_s = 0;
+  /* size_t dest_s = 0;*/
 
   
   if (dest != NULL                /* We need an already initialized buffer. */
@@ -736,10 +736,6 @@ void *SU_strcpy(char *dest, char *src, size_t n)
       && src[0] != '\0'
       && n > 0                    /* Destination buffer's size must be bigger than 0, */
       && n < (SIZE_MAX - 1))      /* and smaller than it's type size - 1. */
-    /* 
-     * Note that both last test above simply cannot fail, size_t being 
-     * unsigned long wrap-arround will occur and produce wierd values..
-     */
     ; /* Valid input. */
   else {
     errno = EINVAL;
@@ -758,9 +754,10 @@ void *SU_strcpy(char *dest, char *src, size_t n)
   memset(dest, 0, n);
   memcpy(dest, src, src_s);
   /* Add a terminating NULL byte. */
-  dest_s = strlen(dest);
+  /*  dest_s = strlen(dest);
   if (dest[dest_s] != '\0')
-    dest[dest_s] = '\0';
+  dest[dest_s] = '\0';*/
+  dest[n] = '\0';
   
   return dest;
 }
