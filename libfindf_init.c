@@ -19,10 +19,9 @@
 /* Library's globals */
 
 findf_list_f *temporary_container;   /* Global list used by all threads as temporary buffer. */
-
-/*#pragma GCC visibility push(default)*/
 pthread_mutex_t stderr_mutex;        /* Lock to serialize debug messages on stderr stream. */
-/*#pragma GCC visibility pop*/
+
+
 /* 
  * intern__findf__opendir() is called on every single entry in the system.
  * In the hope to avoid the overhead of having 1 global 'entry' (readdir_r)
@@ -32,6 +31,16 @@ pthread_mutex_t stderr_mutex;        /* Lock to serialize debug messages on stde
 pthread_key_t entry_key;             /* Readdir_r 'entry' argument's TSD key. */
 
 
+/* 
+ * If I replace all 'return ERROR;' by 'abort()'
+ * the program never execute because intern__findf__init_node()
+ * never succeed.
+ * If I follow the flow using gdb, starting at _lib_init(), 
+ * it does make a first call to _init_node(), fails, 
+ * calls 'return ERROR', and then another call to _init_node, which succeed !??
+ * I'm a little lost.
+ */
+
 /* Initialize the library. */
 int __attribute__ ((constructor)) intern__findf__lib_init(void)
 {
@@ -40,18 +49,21 @@ int __attribute__ ((constructor)) intern__findf__lib_init(void)
   if(pthread_key_create(&entry_key, intern__findf__free_pthread_key) != 0){
     perror("pthread_key_create");
     return ERROR;
+    abort();
   }
   /* Initialize the global findf_list_f list. */
   if ((temporary_container = intern__findf__init_node(DEF_LIST_SIZE, 0, true)) != RF_OPSUCC){
-
     return ERROR;
+    abort();
   }
   /* Initialize the Pthread mutex to serialize stderr output stream in debug messages. */
   if (pthread_mutex_init(&stderr_mutex, NULL) != 0){
     perror("pthread_mutex_init");
     return ERROR;
+    abort();
   }
   return RF_OPSUCC;
+
 }
 
 /* Clean-up behind ourself */
@@ -68,12 +80,12 @@ int __attribute__ ((destructor)) intern__findf__lib_finit(void)
   /* Release resources of the inited pthread key. */
   if (pthread_key_delete(entry_key) != 0){
     perror("pthread_key_delete");
-    return ERROR;
+    abort();
   }
   /* Release resources of the stderr Pthread mutex. */
   if (pthread_mutex_destroy(&stderr_mutex) != 0){
     perror("pthread_mutex_destroy");
-    return ERROR;
+    abort();
   }
 
   return RF_OPSUCC;
