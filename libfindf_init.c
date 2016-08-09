@@ -20,9 +20,9 @@
 
 findf_list_f *temporary_container;   /* Global list used by all threads as temporary buffer. */
 
-#pragma GCC visibility push(default)
+/*#pragma GCC visibility push(default)*/
 pthread_mutex_t stderr_mutex;        /* Lock to serialize debug messages on stderr stream. */
-#pragma GCC visibility pop
+/*#pragma GCC visibility pop*/
 /* 
  * intern__findf__opendir() is called on every single entry in the system.
  * In the hope to avoid the overhead of having 1 global 'entry' (readdir_r)
