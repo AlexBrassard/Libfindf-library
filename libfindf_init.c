@@ -52,7 +52,7 @@ int __attribute__ ((constructor)) intern__findf__lib_init(void)
     abort();
   }
   /* Initialize the global findf_list_f list. */
-  if ((temporary_container = intern__findf__init_node(DEF_LIST_SIZE, 0, true)) != RF_OPSUCC){
+  if ((temporary_container = intern__findf__init_node(DEF_LIST_SIZE, 0, true)) == NULL){
     return ERROR;
     abort();
   }
