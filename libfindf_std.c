@@ -28,7 +28,8 @@ findf_results_f *findf(char *file2find,
   char **rtemp = NULL;
   findf_param_f *findf_param = NULL;
   findf_results_f *callers_results = NULL;
-
+  /* goto label   std_err_jmp;               Cleanup on exit. */
+  
   /* The only way to verify findf() has failed is to check errno. */
   errno = 0;
 
@@ -49,15 +50,15 @@ findf_results_f *findf(char *file2find,
    */
   if ((temp = calloc(1, sizeof(char *))) == NULL){
     findf_perror("Calloc failure.");
-    return NULL;
+    goto std_err_jmp;
   }
   if ((temp[0] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
     findf_perror("Calloc failure.");
-    return NULL;
+    goto std_err_jmp;
   }
   if (SU_strcpy(temp[0], file2find, F_MAXNAMELEN) == NULL){
     findf_perror("SU_strcpy failure.");
-    return NULL;
+    goto std_err_jmp;
   }
 
   /* 
@@ -66,15 +67,15 @@ findf_results_f *findf(char *file2find,
    */
   if ((rtemp = calloc(1, sizeof(char *))) == NULL){
     findf_perror("Calloc failure.");
-    return NULL;
+    goto std_err_jmp;
   }
   if ((rtemp[0] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
     findf_perror("Calloc failure.");
-    return NULL;
+    goto std_err_jmp;
   }
   if (SU_strcpy(rtemp[0], DEF_UNIX_ROOT, F_MAXNAMELEN) == NULL){
     findf_perror("SU_strcpy failure.");
-    return NULL;
+    goto std_err_jmp;
   }
 
   /* intern__findf__internal() needs a parameter object. */
@@ -90,7 +91,7 @@ findf_results_f *findf(char *file2find,
 					       intern__findf__BF_search, 
 					       NULL)) == NULL) { /* Using a findf_param_f object. */
     findf_perror("Failed to initialize a search parameter object.");
-    return NULL;
+    goto std_err_jmp;
   }
   /* We don't need these anymore. */
   free(temp[0]);
@@ -105,11 +106,7 @@ findf_results_f *findf(char *file2find,
   /* Execute the search. */
   if (intern__findf__internal(findf_param) != RF_OPSUCC){
     findf_perror("Failed to execute search.");
-    if (intern__findf__free_param(findf_param) != RF_OPSUCC){
-      findf_perror("Failed to release a parameter object.");
-      return NULL;
-    }
-    return NULL;
+    goto std_err_jmp;
   }
 
 
@@ -118,11 +115,11 @@ findf_results_f *findf(char *file2find,
     if ((callers_results = intern__findf__init_res(findf_param->search_results->position,
 						   findf_param->search_results->pathlist)) == NULL){
       findf_perror("Failed to initialize a results buffer.");
-      return NULL;
+      goto std_err_jmp;
     }
     if (intern__findf__free_param(findf_param) != RF_OPSUCC) {
       findf_perror("Failed to release a parameter object.");
-      return NULL;
+      goto std_err_jmp;
     }
     return callers_results;
   }
@@ -130,8 +127,32 @@ findf_results_f *findf(char *file2find,
   else {
     for (i = 0; i < findf_param->search_results->position; i++)
       printf("Result[%d] is at [%s]\n", i, findf_param->search_results->pathlist[i]);
-    if (intern__findf__free_param(findf_param) != RF_OPSUCC)
-      findf_perror("Failed to release a parameter object.");
-    return NULL;
   }
+
+ std_err_jmp:
+  if (temp) {
+    if (temp[0]){
+      free(temp[0]);
+      temp[0] = NULL;
+    }
+    free(temp);
+    temp = NULL;
+  }
+  if (rtemp){
+    if (rtemp[0]){
+      free(rtemp[0]);
+      rtemp[0] = NULL;
+    }
+    free(rtemp);
+    rtemp = NULL;
+  }
+  if (findf_param){
+    if (intern__findf__free_param(findf_param) != RF_OPSUCC){
+      intern_errormesg("Failed to free findf()'s parameter object.");
+    }
+  }
+  if (callers_results){
+    intern__findf__free_res(callers_results);
+  }
+  return NULL;
 }

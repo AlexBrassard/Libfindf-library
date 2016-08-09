@@ -66,7 +66,10 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
   size_t S1 = 0, S2 = 0;                 /* Counters, "string 1", "string 2". */
   size_t i = 0;                          /* Convinience counter. */
   char **temp_path = NULL;               /* To reorganize sort_buf; */
+  bool ERR = false;                      /* True on error. */
+  /*goto label sort_err_jmp;                Cleanup on exit. */
 
+  
 #ifdef FINDF_SORT_DEBUG
   size_t debug_c = 0;                    /* For debug purposes. */
 #endif /* FINDF_SORT_DEBUG */
@@ -80,25 +83,30 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
   }
   else {
     errno = EINVAL;
-    return ERROR;
-  }
+    ERR = true;
+    goto sort_err_jmp;
+   }
 
   /* Allocate memory:  */
   if ((sort_array = calloc(sizeof_sort_buf, sizeof(size_t))) == NULL){
     intern_errormesg("Calloc failure");
-    return ERROR;
+    ERR = true;
+    goto sort_err_jmp;
   }
   if ((sorted_array = calloc(sizeof_sort_buf, sizeof(size_t))) == NULL){
     intern_errormesg("Calloc failure");
-    return ERROR;
+    ERR = true;
+    goto sort_err_jmp;
   }
   if ((final_array = calloc(sizeof_sort_buf, sizeof(size_t))) == NULL){
     intern_errormesg("Calloc failure");
-    return ERROR;
+    ERR = true;
+    goto sort_err_jmp;
   }
   if ((temp_path = calloc(sizeof_sort_buf, sizeof(char *))) == NULL){
     intern_errormesg("Calloc failure");
-    return ERROR;
+    ERR = true;
+    goto sort_err_jmp;
   }
 
   for (file2find_c = 0; file2find_c < sizeof_file2find; file2find_c++){
@@ -191,6 +199,7 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
     sort_buffer[i] = temp_path[i];
   }
 
+ sort_err_jmp:
   /* Free used resources. */
   if (sort_array != NULL){
     free(sort_array);
@@ -208,6 +217,6 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
     free(temp_path);
     temp_path = NULL;
   }
-    
-  return RF_OPSUCC;
+  if (ERR == false) return RF_OPSUCC;
+  else return ERROR;
 } /* intern__findf__sortp() */

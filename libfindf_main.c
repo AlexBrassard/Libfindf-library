@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
-#include <assert.h> /* do I even use any assert()?? */
 #include <string.h>
 
 #include <findf.h>
@@ -33,7 +32,8 @@ int intern__findf__internal(findf_param_f *callers_param)
   findf_tpool_f *thread_pool = NULL;       /* Pool of Pthread thread objects. */
   findf_param_f **threads_params = NULL;   /* Array of parameter objects, 1 per thread(s) */
   void          *thread_retval = NULL;     /* Thread return value. */
-  size_t         numof_threads = 0;         /* Maximum allowed number of threads for our process. */
+  size_t         numof_threads = 0;        /* Maximum allowed number of threads for our process. */
+  bool           ERR = false;              /* True when there's an error; */
   /* Goto label advance_to_cleanup;           In case the search terminates earlier. */
 
 #ifdef DEBUG
@@ -45,12 +45,14 @@ int intern__findf__internal(findf_param_f *callers_param)
 
   if ((internal_headnode = intern__findf__init_node(DEF_LIST_SIZE, level++, false)) == NULL){
     intern_errormesg("Failed to initialize a new node.\n");
-    return ERROR;
+    ERR = true;
+    goto advance_to_cleanup;
   }
 
   if ((internal_headnode->next = intern__findf__init_node(DEF_LIST_SIZE, level++, false)) == NULL){
     intern_errormesg("Failed to initialise a new node.\n");
-    return ERROR;
+    ERR = true;
+    goto advance_to_cleanup;
   }
   /* For ease of use. */
  internal_nextnode = internal_headnode->next;
@@ -58,7 +60,8 @@ int intern__findf__internal(findf_param_f *callers_param)
  numof_threads = intern__findf__get_avail_cpus();
  if ((thread_pool = intern__findf__init_tpool(numof_threads)) == NULL) {
     intern_errormesg("Failed to initialize a thread pool.\n");
-    return ERROR;
+    ERR = true;
+    goto advance_to_cleanup;
   }
 
   /* 
@@ -67,7 +70,8 @@ int intern__findf__internal(findf_param_f *callers_param)
    */
  if ((threads_params = calloc(numof_threads, sizeof(findf_param_f))) == NULL){
     perror("calloc");
-    return ERROR;
+    ERR = true;
+    goto advance_to_cleanup;
   }
   for (i = 0; i < thread_pool->num_of_threads ; i++)
     if ((threads_params[i] = intern__findf__init_param(callers_param->file2find,
@@ -82,7 +86,8 @@ int intern__findf__internal(findf_param_f *callers_param)
 						       callers_param->algorithm,
 						       NULL)) == NULL) {
       intern_errormesg("Failed to initialize a threads_param parameter object.\n");
-      return ERROR;
+      ERR = true;
+      goto advance_to_cleanup;
     }
 
 
@@ -95,7 +100,7 @@ int intern__findf__internal(findf_param_f *callers_param)
       if (intern__findf__add_element(callers_param->search_roots->pathlist[search_roots_c++],
 				     internal_headnode) != RF_OPSUCC){
 	intern_errormesg("Failed to add element to internal node.\n");
-	/*return ERROR;*/
+	ERR = true;
 	goto advance_to_cleanup;
       }
     
@@ -118,7 +123,7 @@ int intern__findf__internal(findf_param_f *callers_param)
 				 internal_nextnode,
 				 callers_param) != RF_OPSUCC){
 	intern_errormesg("Failed to open directory from internal node.\n");
-	/*	return ERROR;*/
+	ERR = true;
 	goto advance_to_cleanup;
       }
       
@@ -144,7 +149,7 @@ int intern__findf__internal(findf_param_f *callers_param)
       if (intern__findf__add_element(internal_nextnode->pathlist[i],
 				     threads_params[thread_param_pos]->search_roots) != RF_OPSUCC){
 	intern_errormesg("Failed to add a new element to a thread parameter.\n");
-	/*return ERROR;*/
+	ERR = true;
 	goto advance_to_cleanup;
       }
       thread_param_pos++;
@@ -161,7 +166,7 @@ int intern__findf__internal(findf_param_f *callers_param)
       if (intern__findf__add_element(callers_param->search_roots->pathlist[i],
 				     threads_params[thread_param_pos]->search_roots) != RF_OPSUCC){
 	intern_errormesg("Failed to add a new element to a thread parameter.\n");
-	/*	return ERROR;*/
+	ERR = true;
 	goto advance_to_cleanup;
       }
       thread_param_pos++;
@@ -192,7 +197,7 @@ int intern__findf__internal(findf_param_f *callers_param)
 		       : ((void*)threads_params[i])) != 0){
 		       
       intern_errormesg("Failed to create a new thread\n");
-      /*      return ERROR;*/
+      ERR = true;
       goto advance_to_cleanup;
     }
   
@@ -200,7 +205,7 @@ int intern__findf__internal(findf_param_f *callers_param)
     if ((pthread_join(thread_pool->threads[i], &thread_retval) != 0)
 	|| ((unsigned long int)thread_retval != 1)){
       intern_errormesg("Failed to join a thread\n");
-      /*return ERROR;*/
+      ERR = true;
       goto advance_to_cleanup;
     }
   
@@ -214,7 +219,8 @@ int intern__findf__internal(findf_param_f *callers_param)
     if (intern__findf__add_element(temporary_container->pathlist[i],
 			     callers_param->search_results) != RF_OPSUCC){
       intern_errormesg("Failed to add a new element to the caller's parameter object.\n");
-      /*      return ERROR;*/
+      pthread_mutex_unlock(temporary_container->list_lock);
+      ERR = true;
       goto advance_to_cleanup;
     }
   pthread_mutex_unlock(temporary_container->list_lock);
@@ -262,6 +268,7 @@ int intern__findf__internal(findf_param_f *callers_param)
 			       callers_param->search_results->position,
 			       callers_param->sizeof_file2find) != RF_OPSUCC){
 	intern_errormesg("Failed to sort callers_param's resutls.");
+	ERR = true;
 	goto advance_to_cleanup;
       }
       break;
@@ -278,22 +285,26 @@ int intern__findf__internal(findf_param_f *callers_param)
     }
   internal_headnode = NULL;
   internal_nextnode = NULL;
-  
-  for (i = 0; i < thread_pool->num_of_threads; i++){
-    if (intern__findf__free_param(threads_params[i]) != RF_OPSUCC){
-      intern_errormesg("Failed to release an internal parameter.\n");
-      return ERROR;
+  if (threads_params){
+    for (i = 0; i < thread_pool->num_of_threads; i++){
+      if (threads_params[i]){
+	if (intern__findf__free_param(threads_params[i]) != RF_OPSUCC){
+	  intern_errormesg("Failed to release an internal parameter.\n");
+	  /* Don't return an error, break out the loop and continue freeing. */
+	  break;
+	}
+	threads_params[i] = NULL;
+      }
     }
-    threads_params[i] = NULL;
+    free(threads_params);
+    threads_params = NULL;
   }
-  free(threads_params);
-  threads_params = NULL;
-  
-  intern__findf__free_tpool(thread_pool);
-  thread_pool = NULL;
-  
-  
-  return RF_OPSUCC;
+  if (thread_pool){
+    intern__findf__free_tpool(thread_pool);
+    thread_pool = NULL;
+  }
+  if (ERR == false) return RF_OPSUCC;
+  else return ERROR;
 }
 
 
@@ -304,11 +315,11 @@ void *intern__findf__BF_search(void *param)
   findf_list_f *headnode = NULL;                 /* Headnode of BF_search's linked-list. */
   findf_list_f *nextnode = NULL;                    
   findf_param_f *t_param = NULL;                 /* Search parameter given by our caller. */
-
+  /* goto label   bfs_err_jmp;                   Cleanup on exit. */
 
   if (param == NULL){
     intern_errormesg("Invalid or empty search parameter.\n");
-    return NULL;
+    goto bfs_err_jmp;
   }
 #ifdef DEBUG 
   pthread_mutex_lock(&stderr_mutex);
@@ -322,12 +333,12 @@ void *intern__findf__BF_search(void *param)
   /* We need a linked-list. */
   if ((headnode = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL) {
     intern_errormesg("Failed to initialize BF search's linked-list.\n");
-    return NULL;
+    goto bfs_err_jmp;
   }
   
   if ((headnode->next = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL){
     intern_errormesg("Failed to initialize BF search's linked-list.\n");
-    return NULL;
+    goto bfs_err_jmp;
   }
   nextnode = headnode->next;
 
@@ -337,7 +348,7 @@ void *intern__findf__BF_search(void *param)
 			 headnode,
 			 t_param) != RF_OPSUCC){
       intern_errormesg("Failed to open a node's directory.\n");
-      return NULL;
+      goto bfs_err_jmp;
     }
   
   /* Let the search begin. */
@@ -369,13 +380,13 @@ void *intern__findf__BF_search(void *param)
       while(i < headnode->position)	
 	if (intern__findf__opendir(headnode->pathlist[i++], nextnode, t_param) != RF_OPSUCC) {
 	  intern_errormesg("Failed to open a node's directory.\n");
-	  return NULL;
+	  goto bfs_err_jmp;
 	}
 
       /* headnode is completed, shift it out and create a new nextnode */
       if((headnode = intern__findf__shift_node(headnode)) == NULL ){
 	intern_errormesg("Failed to shift a list's headnode.\n");
-	return NULL;
+	goto bfs_err_jmp;
       }
       nextnode = headnode->next;
       continue;
@@ -395,14 +406,15 @@ void *intern__findf__BF_search(void *param)
     if (intern__findf__add_element(t_param->search_results->pathlist[i++],
 			    temporary_container) != RF_OPSUCC){
       intern_errormesg("Failed to add a new element to the global temporary list.\n");
-      return NULL;
+      pthread_mutex_unlock(temporary_container->list_lock);
+      goto bfs_err_jmp;
     }
   pthread_mutex_unlock(temporary_container->list_lock);
 
   /* Destroy our linked list. */
   if (intern__findf__destroy_list(headnode) != RF_OPSUCC){
     intern_errormesg("Failed to destroy BF search's linked-list.\n");
-    return NULL;
+    goto bfs_err_jmp;
   }
 
 #ifdef DEBUG
@@ -412,9 +424,17 @@ void *intern__findf__BF_search(void *param)
   pthread_mutex_unlock(&stderr_mutex);
 #endif /* DEBUG */
 
-  /* Returning 1 since NULL == ((void *)0); */
+  /* Success!  Returning 1 since NULL == ((void *)0); */
   pthread_exit(((void*)1));
 
+  
+ bfs_err_jmp:
+  if (headnode) {
+    if (intern__findf__destroy_list(headnode) != RF_OPSUCC){
+      intern_errormesg("Failed to destroy BF search's linked-list.\n");
+    }
+  }
+  pthread_exit(NULL);
 
 } /* intern__findf__BF_search() */
 
@@ -429,10 +449,12 @@ void *intern__findf__DF_search(void *param)
   findf_list_f       *headnode = NULL;                     /* Linked-list's headnode. */
   findf_list_f       *nextnode = NULL;                     /* Linked-list's next node. */
   findf_param_f      *t_param = NULL;                      /* Caller's parameter object. */
+  /* goto label      dfs_err_jmp;                             Cleanup on early exit. */
 
+  
   if (param == NULL){
     intern_errormesg("Invalid or empty search parameters\n");
-    return NULL;
+    goto dfs_err_jmp;
   }
 
   pthread_mutex_lock(&stderr_mutex);
@@ -444,12 +466,12 @@ void *intern__findf__DF_search(void *param)
   /* Initialize DF_search linked-list's head and next nodes. */
   if ((headnode = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL){
     intern_errormesg("Failed to initialize a findf_list_f node.\n");
-    return NULL;
+    goto dfs_err_jmp;
   }
 
   if ((headnode->next = intern__findf__init_node(DEF_LIST_SIZE,level++, false)) == NULL){
     intern_errormesg("Failed to initialize a findf_list_f node.\n");
-    return NULL;
+    goto dfs_err_jmp;
   }
   nextnode = headnode->next;
 
@@ -459,7 +481,7 @@ void *intern__findf__DF_search(void *param)
 			       headnode,
 			       t_param) != RF_OPSUCC){
       intern_errormesg("Failed to open a 'root of search' directory.\n");
-      return NULL;
+      goto dfs_err_jmp;
     }
     /* Reset this counter every time we open a new search_roots. */
     head_root_c = 0;
@@ -498,7 +520,7 @@ void *intern__findf__DF_search(void *param)
 	if (nextnode->position > 0){
 	  if ((headnode = intern__findf__shift_node(headnode)) == NULL) {
 	    intern_errormesg("Failed to shift DF_search's headnode. \n");
-	    return NULL;
+	    goto dfs_err_jmp;
 	  }
 	  /* Init a new nextnode. */
 	  nextnode = headnode->next;
@@ -526,7 +548,7 @@ void *intern__findf__DF_search(void *param)
 				   nextnode,
 				   t_param) != RF_OPSUCC) {
 	  intern_errormesg("Failed to open a DF_search node's directory.\n");
-	  return NULL;
+	  goto dfs_err_jmp;
 	}
 	head_root_c++;
 	/* Keep searching the node. */
@@ -541,7 +563,7 @@ void *intern__findf__DF_search(void *param)
     if (intern__findf__add_element(t_param->search_results->pathlist[i],
 				   temporary_container) != RF_OPSUCC){
       intern_errormesg("Failed to add element to the global temporary list.\n");
-      return NULL;
+      goto dfs_err_jmp;
     }
   pthread_mutex_unlock(temporary_container->list_lock);
 
@@ -550,9 +572,19 @@ void *intern__findf__DF_search(void *param)
 #endif /* DEBUG */
   
   /* Destroy our linked-list. */
-  intern__findf__destroy_list(headnode);
+  if (intern__findf__destroy_list(headnode) != RF_OPSUCC){
+    intern_errormesg("Failed to destroy DFS's linked-list.\n");
+    goto dfs_err_jmp;
+  }
   
-  
-
   pthread_exit((void *) 1); /* Success ! */
+
+
+ dfs_err_jmp:
+  if (headnode){
+    if (intern__findf__destroy_list(headnode) != RF_OPSUCC){
+      intern_errormesg("Failed to destroy DFS's linked-list.");
+    }
+  }
+  pthread_exit(NULL);
 }
