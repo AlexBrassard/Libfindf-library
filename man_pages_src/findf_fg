@@ -25,6 +25,8 @@ findf_perror - Serialized error message printing MACRO
 Compile and link with \fI-lfindf\fP.
 
 .SH DESCRIPTION
+(See NOTES for a brief description of the Libfindf library itself.)
+.P
 The \fBfindf()\fP function takes a \fIfile2find\fP filename to search for, the \fIfile2find_len\fP lenght of the filename before its terminating NULL byte up to \fBF_MAXNAMELEN\fP (including the terminating NULL byte), and a \fItrue\fP or \fIfalse\fP value indicating whether the results should be printed to a \fBfindf_results_f\fP container, or to the \fIstdout\fP stream, respectively. When \fBIS_BUF\fP is set to \fItrue\fP and a \fBfindf_results_f\fP pointer is returned, it is the responsability of the caller to eventualy make a call to \fBfindf_destroy_results()\fP to properly free the object.
 .br
 (See \fBfindf_read_results\fP(3) for a description of the \fBfindf_results_f\fP data type).
@@ -117,9 +119,44 @@ int main(int argc, char **argv)
 }
 .fi
 .SH NOTES
-On most system, executing any of the findf* functions for the first time after boot up will result in much longer search times, mainly because the operating system will cache the pathnames as findf* looks them up to accelerate further searches.
+The Libfindf library is a small collection of thread-safe functions to easely search one or more file(s) throught the file system.
+.br
+It consists of the following functions:
+.br
+(See their respective man-page for specific information).
+
+.TP
+.B \-findf();
+"Quick" file search using most library's default settings.
+
+.TP
+.B \-findf_fg();
+Finer-grained file search using customized search parameters.
+
+.TP
+.B \-findf_adv();
+(Optional) Advanced file search using customized search parameters.
+
+.TP
+.B \-findf_read_results();
+Read an \fBfindf_results_f\fP object returned from a call to \fBfindf()\fP.
+
+.TP
+.B \-findf_destroy_results();
+Free resources used by a \fBfindf_results_f\fP object.
+
+.TP
+.B \-findf_init_param();
+Initialize a search parameter to pass to \fBfindf_fg()\fP and \fBfindf_adv()\fP.
+
+.TP
+.B \-findf_destroy_param();
+Free resources used by a \fBfindf_param_f\fP search parameter object.
+.br
 .P
-Libfindf's built-in sort algorithm (sortp()), while doing its job at perfectly sorting the results alphabeticaly, grouped by filenames to search for, the algorithm itself is very unefficient. For a search that returns about 500 results, the overhead of sorting results may be arround 2-3 seconds added to the total execution time which can, in most cases, still be resonable. But with a search returning roughly 1400 results, the execution time may take up to 30-40 seconds more, which can quickly become a burden. Please take note that the time required for sortp() to finish sorting will depend greatly on your system.
+On most system, executing any of the findf(), findf_fg() and findf_adv() functions for the first time after boot up will result in much longer search times, mainly because the operating system will cache the pathnames as findf* looks them up to accelerate further searches.
+.P
+Libfindf's built-in sort algorithm (sortp()), while doing its job at perfectly sorting the results alphabeticaly, grouped by filenames to search for, the algorithm itself is very unefficient. For a search that returns about 500 results, the overhead of sorting results may be arround 2-3 seconds added to the total execution time which can, in most cases, still be resonable. But with a search returning roughly 1400 results, the execution time of the sorting function may take up to 30-40 seconds, which can quickly become a burden. Please take note that the time required for sortp() to finish sorting will depend greatly on your system.
 .P
 When expecting many results (500+) from a search, I highly suggest to use \fBfindf_fg()\fP with the sort_type set to \fBNONE\fP or, to use \fBfindf_adv()\fP and implement your own (more perfomant) sorting algorithm.
 .P
@@ -137,6 +174,7 @@ Example output:
 \ \ \ \ In: main @ L40: Calloc failure
 .P
 
+
 .SH SEE ALSO
 .ad l
 .nh
@@ -144,4 +182,4 @@ Example output:
 .BR findf_destroy_param (3),
 .BR findf_read_results (3),
 .BR findf_destroy_results (3),
-.BR findf (7)
+.BR findf_adv (3)
