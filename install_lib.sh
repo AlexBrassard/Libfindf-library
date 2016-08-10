@@ -16,10 +16,10 @@ ARG1=$1
 
 function install_man() {
     cd $PWD/man_pages_src 
+    rm -f *.gz
     # Compress the man-pages.
     for mfile in $PWD/*
     do
-	echo $mfile
 	if [ -a $mfile ]
 	then
 	    gzip -c $mfile > "$mfile.3.gz" # Hardcode ".3" suffix for now.
@@ -32,14 +32,21 @@ function install_man() {
 	sudo mkdir $man_dir
     fi
 
-    sudo cp $PWD/man_page_src/*.3.gz $man_dir
+    sudo cp *.3.gz $man_dir
     cd $man_dir
     # Update the database.
     sudo mandb
     cd $install_dir
 }
 
-
+if [ $ARG1 == "-h" ]
+then
+    printf "Usage: install_lib.sh [-h|-m|-wm]\n\n\tRun with no argument to install the library only.\n"
+    printf "\t-h \tThis message.\n"
+    printf "\t-m \tInstall man-pages only.\n"
+    printf "\t-wm\tInstall both the library and the man-pages.\n\n"
+    exit
+fi
 if [ $ARG1 == "-m" ]
 then
     install_man
