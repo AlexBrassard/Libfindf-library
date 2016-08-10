@@ -21,6 +21,9 @@ HFILES=( "findf.h" )
 # Header file(s) permissions.
 hperm=644
 
+# Export map pathname.
+exp_map="$PWD/libfindf_export.map"
+
 # Shared library name.
 libnam="libfindf.so"
 
@@ -56,7 +59,7 @@ MP7_NAMES=( "findf.7.gz" )
 
 # Undef QUIET_OPENDIR only for debug purposes and even then, only if you
 # really need to see every directory that gets open internaly.
-CFLAGS=" -O2 -fvisibility=hidden -Wall -Wextra -Wpedantic -Wpointer-arith -Wstrict-prototypes -DQUIET_OPENDIR" 
+CFLAGS=" -O2 -g -std=gnu99 -Wall -Wextra -Wpedantic -Wpointer-arith -Wstrict-prototypes -DQUIET_OPENDIR" 
 
 # Libraries to pass to the linker while creating object files.
 # Input them as a string (Empty string for no extra libraries.)
@@ -144,7 +147,7 @@ do
 	_mesg_="Creating $sfile$obj"
 	# gcc "$CFLAGS" -fPIC -c "$newlib$sfile$src" "$CLIBS"
 	# gcc "$CFLAGS -fPIC -c $newlib$sfile$src $CLIBS"
-	`gcc $CFLAGS -fPIC -c $newlib$sfile$src $CLIBS`
+	gcc $CFLAGS -fPIC -c "$newlib$sfile$src" $CLIBS
 	if [ $? == 0 ]
 	then
 	    printf "%-55s OK\n" "$_mesg_"
@@ -158,7 +161,7 @@ done
 
 # Create the shared library.
 _mesg_="Creating shared library"
-cmd="$CFLAGS -shared -o $libnam "
+cmd="$CFLAGS -shared -o $libnam -Wl,--version-script=$exp_map"
 for sfile in ${FILES[@]}
 do
     if [ -a "$newlib$sfile$obj" ] 
@@ -167,8 +170,7 @@ do
     fi
 done
 cmd="$cmd $CLIBS"
-# gcc "$cmd"
-`gcc $cmd`
+gcc $cmd 
 if [ $? != 0 ]
 then  
     printf "%-55s --\n" "$_mesg_"

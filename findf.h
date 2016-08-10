@@ -6,6 +6,7 @@
  *
  */
 
+
 #ifndef LIBFINDF_PUBLIC_HEADER
 
 # pragma GCC visibility push(default)
@@ -16,6 +17,7 @@
 # include <stdlib.h>
 # include <stdbool.h>
 # include <errno.h>
+
 
 
 /* Serialized debug and error message MACRO */

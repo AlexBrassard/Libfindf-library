@@ -44,25 +44,27 @@ findf_list_f *intern__findf__init_node(size_t size,
 				       bool ISGLOBAL)
 {
   findf_list_f *to_init = NULL;
+  char *error_mesg = NULL;
   size_t tempsize = (size > 0 && size > DEF_LIST_SIZE) ? size : DEF_LIST_SIZE;
   size_t i = 0;
+  /* goto label  init_node_err;        Clean-up on error */
   
   /* Init the findf_list_f object. */
   if ((to_init = malloc(sizeof(findf_list_f))) == NULL){
-    perror("malloc");
-    return NULL;
+    error_mesg = "Malloc";
+    goto init_node_err;
   }
   
   /* Init the list's array of strings. */
   if ((to_init->pathlist = calloc(tempsize, sizeof(char*))) == NULL){
-    perror("calloc");
-    return NULL;
+    error_mesg = "Calloc";
+    goto init_node_err;
   }
   
   for (i = 0; i < tempsize; i++)
     if ((to_init->pathlist[i] = calloc(F_MAXPATHLEN, sizeof(char))) == NULL){
-      perror("calloc");
-      return NULL;
+      error_mesg = "Calloc";
+      goto init_node_err;
     }
   
   /* 
@@ -71,12 +73,12 @@ findf_list_f *intern__findf__init_node(size_t size,
    */
   if (ISGLOBAL == true){
     if ((to_init->list_lock = malloc(sizeof(pthread_mutex_t))) == NULL){
-      perror("malloc");
-      return NULL;
+      error_mesg = "Malloc";
+      goto init_node_err;
     }
     if (pthread_mutex_init(to_init->list_lock, NULL) != 0){
-      perror("pthread_mutex_init");
-      return NULL;
+      error_mesg = "Pthread_mutex_init";
+      goto init_node_err;
     }
   }
   else
@@ -89,7 +91,21 @@ findf_list_f *intern__findf__init_node(size_t size,
   to_init->next = NULL;
  
   return to_init;
-  
+
+ init_node_err:
+  if (to_init){
+    if (to_init->pathlist){
+      for (i = 0; i < tempsize; i++){
+	if (to_init->pathlist[i]){
+	  free(to_init->pathlist[i]);
+	}
+      }
+      free(to_init->pathlist);
+    }
+    free(to_init);
+  }
+  perror(error_mesg);
+  return NULL;
 } /* intern__findf__init_node() */
 
 
@@ -188,7 +204,8 @@ int intern__findf__add_element(char *element,
 			       findf_list_f *list)
 {
   char **tmp = NULL;   /* In case we need a bigger list. */
-  size_t tmpsize = 0; 
+  char *error_mesg = NULL;
+  size_t tmpsize = 0;  
   size_t c;            /* Convinience. */
 
   /* 
@@ -216,13 +233,17 @@ int intern__findf__add_element(char *element,
     tmpsize = (list->size) * 2;
     if ((tmp = realloc(list->pathlist, tmpsize * sizeof(char*))) == NULL){
       perror("Realloc");
+      /*
+       * Don't need to goto add_elem_error.
+       * list->pathlist still needs to be freed by our caller.
+       */
       return ERROR;
     }
-    list->pathlist = NULL;
+    /*    list->pathlist = NULL;*/ /* Not needed. */
     for (c = list->position; c < tmpsize; c++)
       if (( tmp[c] = calloc(F_MAXPATHLEN, sizeof(char))) == NULL){
-	perror("calloc");
-	return ERROR;
+	error_mesg = "Calloc";
+	goto add_elem_error;
       }
   
     list->pathlist = tmp;
@@ -240,6 +261,19 @@ int intern__findf__add_element(char *element,
   list->position += 1;
 
   return RF_OPSUCC;
+
+ add_elem_error:
+  if (tmp){
+    for (c = 0; c < tmpsize; c++){
+      if (tmp[c]){
+	free(tmp[c]);
+	tmp[c] = NULL;
+      }
+    }
+    free(tmp);
+  }
+  perror(error_mesg);
+  return ERROR;
 }
 
 
@@ -260,7 +294,8 @@ findf_param_f *intern__findf__init_param(char **_file2find,
 {
   findf_param_f *to_init = NULL;
   size_t i;
-
+  char *error_mesg = NULL;
+  /* goto label init_param_err;          Clean up on error. */
 
   /* 
    * We assume all parameters are valid.
@@ -272,23 +307,24 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   
   /* Allocate memory to the parameter object itself. */
   if ((to_init = malloc(sizeof(findf_param_f))) == NULL){
-    perror("malloc");
-    return NULL;
+    error_mesg = "Malloc";
+    goto init_param_err;
   }
 
   /* Allocate memory to the file to find's array. */
   if ((to_init->file2find = calloc(numof_file2find, sizeof(char *))) == NULL){
-    perror("malloc");
-    return NULL;
+    error_mesg = "Malloc";
+    goto init_param_err;
   }
   for (i = 0; i < numof_file2find; i++){
     if ((to_init->file2find[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
-      perror("malloc");
-      return NULL;
+      error_mesg = "Malloc";
+      goto init_param_err;
     }
     if (SU_strcpy(to_init->file2find[i], _file2find[i], F_MAXNAMELEN) == NULL) {
       intern_errormesg("Failed call to SU_strcpy\n");
-      return NULL;
+      error_mesg = "SU_strcpy";
+      goto init_param_err;
     }
   }
 
@@ -298,12 +334,14 @@ findf_param_f *intern__findf__init_param(char **_file2find,
 							: DEF_LIST_SIZE
 							, 0, false)) == NULL) {
     intern_errormesg("Failed to initialize a new node.\n");
-    return NULL;
+    error_mesg = "Intern__findf__init_node";
+    goto init_param_err;
   }
   for (i = 0; i < numof_search_roots; i++){
     if ((intern__findf__add_element(search_roots[i], to_init->search_roots)) != RF_OPSUCC){
       intern_errormesg("Failed to add a new element to an existing node.\n");
-      return NULL;
+      error_mesg = "Intern__findf__add_element";
+      goto init_param_err;
     }
   }
   
@@ -311,7 +349,8 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   /* Allocate memory to the search_results list. */
   if ((to_init->search_results = intern__findf__init_node(DEF_LIST_SIZE, 0, false)) == NULL) {
     intern_errormesg("Failed to initialize a new node. \n");
-    return NULL;
+    error_mesg = "Intern__findf__init_node";
+    goto init_param_err;
   }
 
   
@@ -326,6 +365,43 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   to_init->arg = arg;
 
   return to_init;
+
+ init_param_err:
+  /* Print why we got here in case any of the _destroy_list() calls fails. */
+  if (error_mesg) 
+    perror(error_mesg);
+  if (to_init){
+    /* Make sure all pointers points to NULL. */
+    to_init->arg = NULL;
+    to_init->algorithm = NULL;
+    to_init->sarg = NULL;
+    to_init->sort_f = NULL;
+    
+    if (to_init->search_results){
+      if (intern__findf__destroy_list(to_init->search_results) != RF_OPSUCC){
+	/* Print why _destroy_list has failed and continue. */
+	perror("Intern__findf__destroy_list");
+      }
+    }
+    if (to_init->search_roots) {
+      if (intern__findf__destroy_list(to_init->search_roots) != RF_OPSUCC){
+	/* Print why _destroy_list has failed and continue. */
+	perror("Intern__findf__destroy_list");
+      }
+    }
+    if (to_init->file2find) {
+      for (i = 0; i < numof_file2find; i++) {
+	if (to_init->file2find[i]){
+	  free(to_init->file2find[i]);
+	  to_init->file2find[i] = NULL;
+	}
+      }
+      free(to_init->file2find);
+      to_init->file2find = NULL;
+    }
+    free(to_init);
+  }
+  return NULL;
 }
 
 
@@ -341,19 +417,14 @@ int intern__findf__free_param(findf_param_f *to_free)
   
   if ((intern__findf__destroy_list(to_free->search_roots) != RF_OPSUCC)
       || (intern__findf__destroy_list(to_free->search_results) != RF_OPSUCC)){
+    /* Print what just happened and continue. */
     intern_errormesg("Failed to release resources of a parameter's list.\n");
-    return ERROR;
   }
   
 
   to_free->search_roots = NULL;
   to_free->search_results = NULL;
   to_free->file2find = NULL;
-  /*  to_free->sizeof_file2find = '\0';
-  to_free->sizeof_search_roots = '\0';
-  to_free->dept = '\0';
-  to_free->search_type = '\0';
-  to_free->sort_type = '\0';*/
   to_free->sort_f = NULL;
   to_free->sarg = NULL;
   to_free->algorithm = NULL;
@@ -438,7 +509,7 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
     if (memcmp(t_param->file2find[i], entry_to_cmp, _file2find_len) == 0){
       if (intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
 	intern_errormesg("Failed to add a new element to a parameter's search_results list.\n");
-	abort();
+	abort(); /* I think I'm being a little rude here.. */
       }
     }
   }
@@ -448,21 +519,34 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
 findf_tpool_f *intern__findf__init_tpool(unsigned long numof_threads)
 {
   findf_tpool_f *to_init = NULL;
+  char *error_mesg = NULL;
+  /* goto label init_pool_err;         In case we must evacuate. */
   
   if ((to_init = malloc(sizeof(findf_tpool_f))) == NULL){
-    perror("malloc");
-    return NULL;
+    error_mesg = "Malloc";
+    goto init_pool_err;
   }
   memset(to_init, 0, sizeof(findf_tpool_f));
   to_init->num_of_threads = numof_threads;
 
   if ((to_init->threads = calloc(to_init->num_of_threads , sizeof(pthread_t))) == NULL){
-    perror("calloc");
-    return NULL;
+    error_mesg = "Calloc";
+    goto init_pool_err;
   }
 
-
   return to_init;
+
+ init_pool_err:
+  if (to_init){
+    if (to_init->threads){
+      free(to_init->threads);
+      to_init->threads = NULL;
+    }
+    free(to_init);
+  }
+  perror(error_mesg);
+  
+  return NULL;
 
 } /* intern__findf__tpool_f() */
 
@@ -473,7 +557,6 @@ void intern__findf__free_tpool(findf_tpool_f *to_free)
   to_free->threads = NULL;
   to_free->num_of_threads = '\0';
   free(to_free);
-  /*to_free = NULL;*/
 } /* intern__findf__free_tpool() */
 
 
@@ -482,23 +565,26 @@ findf_results_f *intern__findf__init_res(size_t bufsize,
 {
   unsigned int i = 0;
   findf_results_f *to_init = NULL;
-
+  char *error_mesg = NULL;
+  /* goto label  init_res_err;          Early cleanup. */
+  
   if ((to_init = malloc(sizeof(findf_results_f))) == NULL){
-    intern_errormesg("Malloc failure");
-    return NULL;
+    error_mesg = "Malloc";
+    goto init_res_err;
   }
   if ((to_init->res_buf = calloc(bufsize, sizeof(char*))) == NULL){
-    intern_errormesg("Calloc failure");
-    return NULL;
+    error_mesg = "Calloc";
+    goto init_res_err;
   }
   for (i = 0; i < bufsize; i++) {
     if ((to_init->res_buf[i] = calloc(F_MAXPATHLEN, sizeof(char))) == NULL){
-      intern_errormesg("Calloc failure");
-      return NULL;
+      error_mesg = "Calloc";
+      goto init_res_err;
     }
     if (SU_strcpy(to_init->res_buf[i], buffer[i], F_MAXPATHLEN) == NULL){
       intern_errormesg("SU_strcpy failure");
-      return NULL;
+      error_mesg = "SU_strcpy";
+      goto init_res_err;
     }
   }
 
@@ -506,6 +592,24 @@ findf_results_f *intern__findf__init_res(size_t bufsize,
   to_init->max_string_len = F_MAXPATHLEN;
 
   return to_init;
+
+ init_res_err:
+  if (to_init){
+    if (to_init->res_buf){
+      for (i = 0; i < bufsize; i++){
+	
+	if (to_init->res_buf[i]){
+	  free(to_init->res_buf[i]);
+	  to_init->res_buf[i] = NULL;
+	}
+      }
+      free(to_init->res_buf);
+      to_init->res_buf = NULL;
+    }
+    free(to_init);
+  }
+  perror(error_mesg);
+  return NULL;
 
 } /* intern__findf__init_res() */
 
@@ -554,7 +658,7 @@ int intern__findf__opendir(char *pathname,
 			   findf_list_f *nextnode,
 			   findf_param_f *t_param)
 {
-  char temppathname[F_MAXPATHLEN] = "";         /* Directory we're working on. */
+  char temppathname[F_MAXPATHLEN] = "";       /* Directory we're working on. */
   DIR *dirstream = NULL;                      /* Stream returned by opendir(). */
   struct dirent *res = NULL;                  /* To feed readdir_r(). */
   struct stat stat_buf;                       /* Buffer used by lstat(). */
@@ -572,7 +676,11 @@ int intern__findf__opendir(char *pathname,
   if ((dirstream = opendir(pathname)) == NULL){
     /* 
      * Don't return an error when hitting a forbidden directory.
-     * Print a message (if QUIET_OPENDIR is #undef) and get another directory. 
+     * Print a message ONLY if permission is denied or 
+     * the error was not EACCES, ENOTDIR, ENOENT.
+     * QUIET_OPENDIR must be undefined for the error message to show up.
+     * (Defined by default, happens too often for a regular user).
+     * Then, get another directory.
      */
     if (errno == EACCES){
 #ifndef QUIET_OPENDIR
@@ -712,7 +820,6 @@ size_t intern__findf__get_avail_cpus(void)
 void *SU_strcpy(char *dest, char *src, size_t n)
 {
   size_t src_s = 0;
-  size_t dest_s = 0;
 
   
   if (dest != NULL                /* We need an already initialized buffer. */
@@ -720,10 +827,6 @@ void *SU_strcpy(char *dest, char *src, size_t n)
       && src[0] != '\0'
       && n > 0                    /* Destination buffer's size must be bigger than 0, */
       && n < (SIZE_MAX - 1))      /* and smaller than it's type size - 1. */
-    /* 
-     * Note that both last test above simply cannot fail, size_t being 
-     * unsigned long wrap-arround will occur and produce wierd values..
-     */
     ; /* Valid input. */
   else {
     errno = EINVAL;
@@ -741,10 +844,6 @@ void *SU_strcpy(char *dest, char *src, size_t n)
   
   memset(dest, 0, n);
   memcpy(dest, src, src_s);
-  /* Add a terminating NULL byte. */
-  dest_s = strlen(dest);
-  if (dest[dest_s] != '\0')
-    dest[dest_s] = '\0';
   
   return dest;
 }
