@@ -1,9 +1,25 @@
 #!/bin/bash
 
+#
+#
+#
+#  Libfindf.so  -  Library and man-page installation script.
+#  v2.0.0
+#
+#
+# Usage:
+#  Run the script with no arguments to install the library only.
+#  Run the script with [-m] to install the library's man-pages only.
+#  Run the script with [-wm] to install both the library and the man-pages.
+#
+#
+
 # Adjust these to your own system needs.
 header_dir="/usr/include/"
 lib_dir="/usr/lib/"
 man_dir="/usr/local/share/man/man3/"
+
+
 
 # Unless you're maintaining/developping Libfindf, don't change these.
 header_perm=644       # rw-r--r--
@@ -12,6 +28,8 @@ lib_name="libfindf.so.1.0.0"
 lib_link_name="libfindf.so"
 install_dir=`echo $PWD/`
 ARG1=$1
+
+
 
 
 function install_man() {
