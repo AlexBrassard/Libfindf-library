@@ -24,16 +24,17 @@ int findf_fg(findf_param_f *search_param)
    * Verify that the search type set by findf_init_param() is
    * not CUSTOM, if it is, default to BFS.
    */
-  if (search_param->search_type == BFS
+  /*  if (search_param->search_type == BFS
       || search_param->search_type == DFS
       || search_param->search_type == IDDFS
       || search_param->search_type == IDBFS) {
-    ; /* Valid */
+    ; 
   }
   else {
     search_param->search_type = BFS;
     search_param->algorithm = intern__findf__BF_search;
-  }
+    }*/
+  intern__findf__verify_search_type(search_param);
 
   
   /* Execute the search. */

@@ -136,6 +136,9 @@ void intern__findf__free_tpool(findf_tpool_f *to_free);
 /* Get the maximum allowed number of cpus/cores for our process. */
 size_t intern__findf__get_avail_cpus(void);
 
+/* Verify if the search_type is valid, else set a valid one. */
+void intern__findf__verify_search_type(findf_param_f *search_param);
+
 /* Initialize a findf_results_f object. */
 findf_results_f *intern__findf__init_res(size_t bufsize,
 					 char **buffer);

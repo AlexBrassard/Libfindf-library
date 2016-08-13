@@ -848,3 +848,17 @@ void *SU_strcpy(char *dest, char *src, size_t n)
   return dest;
 }
 
+void intern__findf__verify_search_type(findf_param_f *search_param)
+{
+  if (search_param->search_type == BFS
+      || search_param->search_type == DFS
+      || search_param->search_type == IDDFS
+      || search_param->search_type == IDBFS
+      ){
+    ; /* Valid */
+  }
+  else {
+    search_param->search_type = BFS;
+    search_param->algorithm = intern__findf__BF_search;
+  }
+}
