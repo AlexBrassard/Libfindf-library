@@ -35,7 +35,7 @@ findf_param_f *findf_init_param(char **file2find,
   size_t f2f_c = 0;
   findf_param_f *to_init = NULL;
 
-  if (((numof_file2find > 0 && numof_file2find < SIZE_MAX - 1)
+  if ((numof_file2find < SIZE_MAX - 1
        && max_inc_dept < UINT_MAX - 1)  /* Can be 0, meaning infinity. */
       && (numof_search_roots < SIZE_MAX - 1)
       && (sort_type == NONE  /* Only verify validity here, _internal() knows how to handle the field. */
@@ -96,30 +96,28 @@ findf_param_f *findf_init_param(char **file2find,
       }
     }
   }
-  /*
-   * Verify we've been provided at least 1 valid filename
-   * to search for. Else why are we here for?
-   */
-  for (i = 0; i < numof_file2find; i++){
-    if (file2find[i] == NULL && f2f_c == 0){
-      errno = ENODATA;
-      pthread_mutex_lock(&stderr_mutex);
-      fprintf(stderr, "The Libfindf library needs at least 1 filename to search for.\n\n");
-      pthread_mutex_unlock(&stderr_mutex);
-      return NULL;
+  /* findf_re requires to let NULL slip in. */
+  if (file2find){
+    for (i = 0; i < numof_file2find; i++){
+      if (file2find[i] == NULL && f2f_c == 0){
+	errno = ENODATA;
+	pthread_mutex_lock(&stderr_mutex);
+	fprintf(stderr, "The Libfindf library needs at least 1 filename to search for.\n\n");
+	pthread_mutex_unlock(&stderr_mutex);
+	return NULL;
+      }
+      /* 
+       * The caller gave a numof_file2find that's bigger that
+       * the actual amount of filenames in file2find.
+       */
+      else if(file2find[i] == NULL && f2f_c > 0) {
+	numof_file2find = f2f_c;
+	break;
+      }
+      else /* Valid */ 
+	f2f_c++;
     }
-    /* 
-     * The caller gave a numof_file2find that's bigger that
-     * the actual amount of filenames in file2find.
-     */
-    else if(file2find[i] == NULL && f2f_c > 0) {
-      numof_file2find = f2f_c;
-      break;
-    }
-    else /* Valid filename */
-      f2f_c++;
   }
-  
   /* Caller wants a BFS/IDBFS type of search. */
   if (search_type == BFS 
       || search_type == IDBFS){

@@ -27,8 +27,12 @@ header_name="findf.h"
 lib_name="libfindf.so.1.0.0"
 lib_link_name="libfindf.so"
 install_dir=`echo $PWD/`
-ARG1=$1
-
+if [ $1 ] # To remove the error message when there's no arguments.
+then
+    ARG1=$1
+else
+    ARG1="NULL"
+fi
 
 
 
@@ -77,6 +81,7 @@ then
     sudo rm "$header_dir$header_name"
 fi
 sudo cp $header_name $header_dir
+sudo chmod $header_perm "$header_dir$header_name" 
 
 # Remove old files if they exists.
 make clean
@@ -89,10 +94,7 @@ if [ -a "$lib_dir$lib_name" ]
 then
     sudo rm "$lib_dir$lib_name" "$lib_dir$lib_link_name"
 fi
-if [ -a "$lib_dir$lib_link_name" ]
-then
-    sudo rm "$lib_dir$lib_link_name"
-fi
+
 cd $lib_dir
 sudo ldconfig
 

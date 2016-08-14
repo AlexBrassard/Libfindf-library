@@ -17,7 +17,7 @@
 # include <stdlib.h>
 # include <stdbool.h>
 # include <errno.h>
-
+# include <regex.h>
 
 
 /* Serialized debug and error message MACRO */
@@ -32,10 +32,15 @@ extern pthread_mutex_t stderr_mutex;
     pthread_mutex_unlock(&stderr_mutex);			\
   } while (0);
 
-/* Data-types */
+/* 
+ * Data-types 
+ * Most fields are used internally, removing any might break Libfindf.so .
+ * Fields revelant to a user of of the library should search the
+ * appropriate man-pages. (findf(3) && "SEE ALSO" section).
+ */
 
 /* 
- * Homemade lists, careful not to confuse the size, 
+ * Libfindf's lists, careful not to confuse the size, 
  * which is the total number of N elements in the pathlist[N][F_MAXPATHLEN] array,
  * and position, which is the first free B position of the pathlist[B][F_MAXPATHLEN] array.
  */
@@ -57,7 +62,7 @@ typedef enum srch_type_f {
   BFS,                                     /* Built-in Breath-first(-like) search algorithm. */
   IDBFS                                    /* Built-in Itterative-deepening breath-first(-like) search. */
   
-} findf_type_f; /* _f == "flag" */
+} findf_type_f;
 
 /* Libfindf 'type of sorting' flag data type. */
 typedef enum sort_type_f {
@@ -66,6 +71,15 @@ typedef enum sort_type_f {
   SORTP                                     /* Libfindf built-in hybrid sorting algorithm. */
 
 } findf_sort_type_f;
+
+/* Libfindf's regex data structure. */
+typedef struct fregex{
+  regex_t          *cpattern;               /* A compiled regex pattern via a call to regcomp(). */
+  bool             fr_boleol;               /* True when ^ $ matches begining and ending of line repectively. */
+  bool             fr_global;               /* True when a substitution is made on all found matches. */
+  void*            (*operation)(void*);     /* A pointer to the operation to execute on the regex. */
+
+} findf_regex_f;
 
 /* Libfindf search parameter data structure. */
 typedef struct srch_param_f {
@@ -81,6 +95,7 @@ typedef struct srch_param_f {
   void              *sarg;                  /* Argument passed to a custom sort routine. */
   void              *(*algorithm)(void *);  /* Pointer to a custom search algorithm. */
   void              *arg;                   /* Argument passed to a custom search algorithm. */
+  findf_regex_f     **reg_array;            /* Used by findf_re to do a regex-based search. */
 
 } findf_param_f;
 
@@ -101,25 +116,33 @@ typedef struct reslist{
 } findf_results_f;
 
 
-
-
 /* Constants */
 
+/*
+ * The following contants are mostly arbitary.
+ * Admins may change them to suit their systems' needs.
+ */
 
-/* Maximum allowed lenght of pathnames. (Built-in default = (Pathname = /name/ * 15)). */
-#define F_MAXPATHLEN 4096               /* Arbitrary. Admins may change it to fit their systems' needs. */
+/* Maximum allowed lenght of pathnames. (Built-in default: (Pathname = /name/ * 15)). */
+#define F_MAXPATHLEN 4096               
 
 /* Default findf_list_f initial size. */
-#define DEF_LIST_SIZE 512               /* Aribtrary. Admins may change it to fit their systems' needs. */
+#define DEF_LIST_SIZE 512
 
 /* Maximum lenght of names. */ 
-#define F_MAXNAMELEN 256                /* Aribtrary. Admins may change it to fit their systems' needs. */
+#define F_MAXNAMELEN 256
 
 /* Default number of threads, in case sysconf() returned -1. */
-#define DEF_THREADS_NUM 2               /* Aribtrary. Admins may change it to fit their systems' needs. */
+#define DEF_THREADS_NUM 2
 
 /* Default maximum number of created threads. */
-#define DEF_MAX_THREADS_NUM 32          /* Aribtrary. Admins may change it to fit their systems' needs. */
+#define DEF_MAX_THREADS_NUM 32
+
+/* Default maximum number of regex pattern expected. */
+#define FINDF_MAX_PATTERNS 4096
+
+/* Default maximum lenght of a single regex pattern. */
+#define FINDF_MAX_PATTERN_LEN 256       /* 256 is the limit to remain POSIX compliant. */
 
 /* Default standard Unix root. */
 #define DEF_UNIX_ROOT "/\0"
@@ -141,6 +164,11 @@ findf_results_f* findf(char *file2find,
 
 /* Fine-grained search. */
 int findf_fg(findf_param_f *search_param);
+
+/* Fine-grained, regex search. */
+int findf_re(findf_param_f *search_param,
+	     char **patterns,
+	     size_t numof_patterns);
 
 #ifdef CW_FINDF_ADVANCED
 /* Advanced, fine-grained search. */

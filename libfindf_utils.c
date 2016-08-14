@@ -312,22 +312,23 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   }
 
   /* Allocate memory to the file to find's array. */
-  if ((to_init->file2find = calloc(numof_file2find, sizeof(char *))) == NULL){
-    error_mesg = "Malloc";
-    goto init_param_err;
-  }
-  for (i = 0; i < numof_file2find; i++){
-    if ((to_init->file2find[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
+  if (_file2find){ /* findf_re requires to let NULL slip in. */
+    if ((to_init->file2find = calloc(numof_file2find, sizeof(char *))) == NULL){
       error_mesg = "Malloc";
       goto init_param_err;
     }
-    if (SU_strcpy(to_init->file2find[i], _file2find[i], F_MAXNAMELEN) == NULL) {
-      intern_errormesg("Failed call to SU_strcpy\n");
-      error_mesg = "SU_strcpy";
-      goto init_param_err;
+    for (i = 0; i < numof_file2find; i++){
+      if ((to_init->file2find[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
+	error_mesg = "Malloc";
+	goto init_param_err;
+      }
+      if (SU_strcpy(to_init->file2find[i], _file2find[i], F_MAXNAMELEN) == NULL) {
+	intern_errormesg("Failed call to SU_strcpy\n");
+	error_mesg = "SU_strcpy";
+	goto init_param_err;
+      }
     }
   }
-
   /* Allocate memory to the search_roots list. */
   if ((to_init->search_roots = intern__findf__init_node(numof_search_roots >= DEF_LIST_SIZE 
 							? numof_search_roots 
@@ -363,6 +364,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   to_init->sarg = sarg;
   to_init->algorithm = algorithm;
   to_init->arg = arg;
+  to_init->reg_array = NULL;
 
   return to_init;
 
@@ -372,6 +374,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
     perror(error_mesg);
   if (to_init){
     /* Make sure all pointers points to NULL. */
+    to_init->reg_array = NULL;
     to_init->arg = NULL;
     to_init->algorithm = NULL;
     to_init->sarg = NULL;
@@ -408,13 +411,16 @@ findf_param_f *intern__findf__init_param(char **_file2find,
 int intern__findf__free_param(findf_param_f *to_free)
 {
   size_t i;
-   
-  for (i = 0; i < to_free->sizeof_file2find; i++){
-    free(to_free->file2find[i]);
-    to_free->file2find[i] = NULL;
+
+  if (to_free->file2find){
+    for (i = 0; i < to_free->sizeof_file2find; i++){
+      if (to_free->file2find[i]){
+	free(to_free->file2find[i]);
+	to_free->file2find[i] = NULL;
+      }
+    }
+    free(to_free->file2find);
   }
-  free(to_free->file2find);
-  
   if ((intern__findf__destroy_list(to_free->search_roots) != RF_OPSUCC)
       || (intern__findf__destroy_list(to_free->search_results) != RF_OPSUCC)){
     /* Print what just happened and continue. */
@@ -429,6 +435,7 @@ int intern__findf__free_param(findf_param_f *to_free)
   to_free->sarg = NULL;
   to_free->algorithm = NULL;
   to_free->arg = NULL;
+  to_free->reg_array = NULL;
 
   free(to_free);
   /*  to_free = NULL;*/
