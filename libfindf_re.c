@@ -30,6 +30,10 @@ int findf_re(findf_param_f *sparam,
   intern__findf__verify_search_type(sparam);
   if (patterns == NULL){
     /* We're just a findf_fg() clone then. */
+    if (sparam->file2find == NULL){
+      errno = EINVAL;
+      return ERROR;
+    }
     if (intern__findf__internal(sparam) != RF_OPSUCC){
       findf_perror("Failed to execute the search");
       return ERROR;
@@ -41,7 +45,10 @@ int findf_re(findf_param_f *sparam,
     * Execute the search findf_fg style. 
     */
   if (numof_patterns == 0){
-   
+    if (sparam->file2find == NULL){
+      errno = EINVAL;
+      return ERROR;
+    }
     if (intern__findf__internal(sparam) != RF_OPSUCC){
       findf_perror("Failed to execute the search");
       return ERROR;
@@ -55,7 +62,7 @@ int findf_re(findf_param_f *sparam,
      */
     numof_patterns = FINDF_MAX_PATTERNS;
     pthread_mutex_lock(&stderr_mutex);
-    fprintf(stderr, "%s - Too many patterns. Using %zu\n\n", __func__, numof_patterns);
+    fprintf(stderr, "%s - Too many patterns.\nUsing only the first %zu\n\n", __func__, numof_patterns);
     pthread_mutex_unlock(&stderr_mutex);
   }
   /* Call intern__findf__parse_pattern() here. */
