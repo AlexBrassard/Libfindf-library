@@ -169,7 +169,8 @@ findf_regex_f* intern__findf__init_regex(char *pattern,
 int intern__findf__free_regex(findf_regex_f *to_free);
 
 /* Release resources of an array of findf_regex_f object. */
-int intern__findf__destroy_regarray(findf_regex_f **reg_array);
+int intern__findf__destroy_regarray(findf_regex_f **reg_array,
+				    size_t numof_patterns);
 
 /* Parse each Perl-like regex pattern into a fully POSIX compliant pattern. */
 findf_regex_f** intern__findf__parse_patterns(char **patterns,
