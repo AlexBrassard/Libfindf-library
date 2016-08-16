@@ -74,10 +74,10 @@ typedef enum sort_type_f {
 
 /* Libfindf's regex data structure. */
 typedef struct fregex{
-  regex_t          *pattern;               /* A compiled regex pattern via a call to regcomp(). */
-  bool             fr_boleol;               /* True when ^ $ matches begining and ending of line repectively. */
-  bool             fr_global;               /* True when a substitution is made on all found matches. */
-  void*            (*operation)(void*);     /* A pointer to the operation to execute on the regex. */
+  regex_t          *pattern;                 /* A compiled regex pattern via a call to regcomp(). */
+  bool             fre_boleol;               /* True when regexec flags REG_NOTBOL/REG_NOTEOL are activated. */
+  bool             frc_global;               /* True when a substitution is made on all found matches. */
+  void*            (*operation)(void*);      /* A pointer to the operation to execute on the regex. */
 
 } findf_regex_f;
 

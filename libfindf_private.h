@@ -159,11 +159,10 @@ int intern__findf__rotate_buffer(size_t *sorted_array,
 
 /* Initialize a findf_regex_f object pointer. */
 findf_regex_f* intern__findf__init_regex(char *pattern,
-					 bool fr_icase,
-					 bool fr_newline,
-					 bool fr_ext,
-					 bool fr_global,
-					 bool fr_boleol);
+					 bool frc_icase,
+					 bool frc_newline,
+					 bool frc_global,
+					 bool fre_boleol);
 
 /* Release resources of a findf_regex_f object. */
 int intern__findf__free_regex(findf_regex_f *to_free);
