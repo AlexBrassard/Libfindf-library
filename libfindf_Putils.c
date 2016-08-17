@@ -60,11 +60,11 @@ findf_param_f *findf_init_param(char **file2find,
     }
     if ((def_root_array[0] = calloc(DEF_UNIX_ROOT_LEN, sizeof(char))) == NULL){
       findf_perror("Calloc failure");
-      return NULL;
+      goto cleanup;
     }
     if (SU_strcpy(def_root_array[0], DEF_UNIX_ROOT, DEF_UNIX_ROOT_LEN) == NULL){
       findf_perror("SU_strcpy failure");
-      return NULL;
+      goto cleanup;
     }
       
   }
@@ -82,7 +82,7 @@ findf_param_f *findf_init_param(char **file2find,
 	  fprintf(stderr, "The Libfindf library does not support relative pathname(s):\n[%s]\n",
 		  search_roots[i]);
 	  pthread_mutex_unlock(&stderr_mutex);
-	  return NULL;
+	  goto cleanup;
 	}
       }
       /* 
@@ -104,7 +104,7 @@ findf_param_f *findf_init_param(char **file2find,
 	pthread_mutex_lock(&stderr_mutex);
 	fprintf(stderr, "The Libfindf library needs at least 1 filename to search for.\n\n");
 	pthread_mutex_unlock(&stderr_mutex);
-	return NULL;
+	goto cleanup;
       }
       /* 
        * The caller gave a numof_file2find that's bigger that
@@ -132,7 +132,7 @@ findf_param_f *findf_init_param(char **file2find,
 					     NULL,
 					     intern__findf__BF_search, 
 					     NULL)) == NULL)
-      return NULL;
+      goto cleanup;
   }
   /* Caller wants a DFS/IDDFS type of search. */
   else if (search_type == DFS
@@ -148,7 +148,7 @@ findf_param_f *findf_init_param(char **file2find,
 					     NULL,
 					     intern__findf__DF_search, 
 					     NULL)) == NULL)
-      return NULL;
+      goto cleanup;
   }
   /* Caller has a custom algorithm. */
   else if (search_type == CUSTOM){
@@ -163,12 +163,12 @@ findf_param_f *findf_init_param(char **file2find,
 					     NULL,  /* Set by findf_adv(), if needed. */
 					     NULL, /* Set by findf_adv(), if needed. */
 					     NULL)) == NULL)
-      return NULL;
+      goto cleanup;
   }
   else {
     /* Invalid search type. */
     errno = EINVAL;
-    return NULL;
+    goto cleanup;
   }
 
   if (NO_ROOT == true){
@@ -178,6 +178,17 @@ findf_param_f *findf_init_param(char **file2find,
     def_root_array = NULL;
   }
   return to_init;
+
+ cleanup:
+  if (def_root_array){
+    if (def_root_array[0]){
+      free(def_root_array[0]);
+      def_root_array[0] = NULL;
+    }
+    free(def_root_array);
+    def_root_array = NULL;
+  }
+  return NULL;
 }
 /* Destroy a findf_param_f object. */
 int findf_destroy_param(findf_param_f *to_free)
