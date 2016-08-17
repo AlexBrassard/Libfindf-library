@@ -8,7 +8,7 @@
 
 # GCC compile flags
 GNUCC = gcc
-GNUCFLAGS = -O2 -g -std=gnu99 -Wall -Wextra -Wpedantic \
+GNUCFLAGS = -O2 -g -std=gnu99 -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-parameter -Wall -Wextra -Wpedantic \
             -Wpointer-arith -Wstrict-prototypes -DQUIET_OPENDIR # when undef produces loads of output.
 GNULDFLAGS = -lpthread
 
