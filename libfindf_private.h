@@ -159,17 +159,15 @@ int intern__findf__rotate_buffer(size_t *sorted_array,
 
 /* Initialize a findf_regex_f object pointer. */
 findf_regex_f* intern__findf__init_regex(char *pattern,
-					 bool frc_icase,
-					 bool frc_newline,
-					 bool frc_global,
-					 bool fre_boleol);
+					 bool compw_icase,
+					 bool compw_newline);
 
 /* Release resources of a findf_regex_f object. */
 int intern__findf__free_regex(findf_regex_f *to_free);
 
 /* Release resources of an array of findf_regex_f object. */
-int intern__findf__destroy_regarray(findf_regex_f **reg_array,
-				    size_t numof_patterns);
+int intern__findf__free_regarray(findf_regex_f **reg_array,
+				 size_t numof_patterns);
 
 /* Parse each Perl-like regex pattern into a fully POSIX compliant pattern. */
 findf_regex_f** intern__findf__parse_patterns(char **patterns,

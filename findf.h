@@ -9,7 +9,7 @@
 
 #ifndef LIBFINDF_PUBLIC_HEADER
 
-# pragma GCC visibility push(default)
+
 # define LIBFINDF_PUBLIC_HEADER 1
 
 # include <pthread.h>
@@ -75,8 +75,7 @@ typedef enum sort_type_f {
 /* Libfindf's regex data structure. */
 typedef struct fregex{
   regex_t          *pattern;                 /* A compiled regex pattern via a call to regcomp(). */
-  bool             fre_boleol;               /* True when regexec flags REG_NOTBOL/REG_NOTEOL are activated. */
-  bool             frc_global;               /* True when a substitution is made on all found matches. */
+  bool             fre_modif_global;         /* True when a substitution is made on all found matches. */
   void*            (*operation)(void*);      /* A pointer to the operation to execute on the regex. */
 
 } findf_regex_f;
@@ -197,6 +196,7 @@ int findf_read_results(findf_results_f *to_read);
 /* Release resources of a findf_results_f result container object. */
 int findf_destroy_results(findf_results_f *to_free);
 
+/* TEMPORARY TEST */
+findf_regex_f *intern__findf__init_regex(char *pat, bool icase, bool newline);
 
-# pragma GCC visibility pop
 #endif /* LIBFINDF_PUBLIC_HEADER */
