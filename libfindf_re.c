@@ -27,7 +27,9 @@ int findf_re(findf_param_f *sparam,
     errno = EINVAL;
     return ERROR;
   }
+
   intern__findf__verify_search_type(sparam);
+
   if (patterns == NULL){
     /* We're just a findf_fg() clone then. */
     if (sparam->file2find == NULL){
