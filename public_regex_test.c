@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include <findf.h>
+#include "libfindf_private.h"
 
 int main(void)
 {
@@ -12,19 +13,18 @@ int main(void)
   size_t numof_file2find = 0;
   size_t i = 0;
   size_t numof_search_roots = 1;
-  size_t numof_patterns = 10;
-  findf_regex_f **test_regex = NULL;
+  size_t numof_patterns = 3;
 
-  /*  if ((file2ind = calloc(numof_file2find, sizeof(char*))) == NULL){
+  /*  if ((file2find = calloc(numof_file2find, sizeof(char*))) == NULL){
     findf_perror("Calloc failure.");
     goto cleanup;
-  }
+    }*/
   for(i = 0; i < numof_file2find; i++){
     if ((file2find[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
       findf_perror("Calloc failure.");
       goto cleanup;
     }
-    }*/
+  }
 
   /* Search's root. */
   if ((search_roots = calloc(numof_search_roots, sizeof(char*))) == NULL){
@@ -56,19 +56,16 @@ int main(void)
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }
-  /* Quick test intern__findf__init_regex(). */
-  if ((test_regex = malloc(10 * sizeof(findf_regex_f*))) == NULL){
-    findf_perror("Malloc");
+  if (SU_strcpy(patterns[1], "s/a.b/g", FINDF_MAX_PATTERN_LEN) == NULL){
+    findf_perror("SU_strcpy");
     goto cleanup;
   }
-  for (i = 0; i < numof_patterns; i++){
-    if ((test_regex[i] = intern__findf__init_regex(patterns[0], false, true)) == NULL){
-      findf_perror("intern__findf__init_regex");
-      goto cleanup;
-    }
+  if (SU_strcpy(patterns[2], "m/b?c*/i", FINDF_MAX_PATTERN_LEN) == NULL){
+    findf_perror("SU_strcpy");
+    goto cleanup;
   }
 
-  /*
+  
   if ((sparam = findf_init_param(file2find, search_roots,
 				 numof_file2find, numof_search_roots,
 				 0, IDBFS, SORTP)) == NULL){
@@ -79,7 +76,7 @@ int main(void)
   if (findf_re(sparam, patterns, numof_patterns) == -1){
     findf_perror("Failed to execute the search");
     goto cleanup;
-    }*/
+  }
   
  cleanup:
   if (file2find){
@@ -115,10 +112,6 @@ int main(void)
   if (sparam){
     findf_destroy_param(sparam);
     sparam = NULL;
-  }
-  if (test_regex){
-    intern__findf__free_regarray(test_regex, numof_patterns);
-    test_regex = NULL;
   }
 
   return -1;

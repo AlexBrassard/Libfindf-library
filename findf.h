@@ -74,8 +74,15 @@ typedef enum sort_type_f {
 
 /* Libfindf's regex data structure. */
 typedef struct fregex{
+  bool             fre_modif_boleol;         /* True when the '\m' modifier is activated. */
+  bool             fre_modif_newline;        /* True when the '\s' modifier is activated. */
+  bool             fre_modif_icase;          /* True when the '\i' modifier is activated. */
+  bool             fre_modif_ext;            /* True when the '\x' modifier is activated. */
+  bool             fre_modif_global;         /* True when the '\g' modifier is activated. */
+  bool             fre_op_match;             /* True when operation is match. */
+  bool             fre_op_substitute;        /* True when operation is substitute. */
+  bool             fre_op_transliterate;     /* True when operation is transliterate. */
   regex_t          *pattern;                 /* A compiled regex pattern via a call to regcomp(). */
-  bool             fre_modif_global;         /* True when a substitution is made on all found matches. */
   void*            (*operation)(void*);      /* A pointer to the operation to execute on the regex. */
 
 } findf_regex_f;
@@ -196,7 +203,5 @@ int findf_read_results(findf_results_f *to_read);
 /* Release resources of a findf_results_f result container object. */
 int findf_destroy_results(findf_results_f *to_free);
 
-/* TEMPORARY TEST */
-findf_regex_f *intern__findf__init_regex(char *pat, bool icase, bool newline);
 
 #endif /* LIBFINDF_PUBLIC_HEADER */

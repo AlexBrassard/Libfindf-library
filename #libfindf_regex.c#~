@@ -24,10 +24,14 @@ void *dummy(void *dumdum){
   return ((void*)1);
 }
 
-/* Initialize a findf_regex_f object. */
-findf_regex_f* intern__findf__init_regex(void)
+/* Initialize a findf_regex_f object. 
+findf_regex_f* intern__findf__init_regex(char *pattern,
+					 bool compw_icase,
+					 bool compw_newline)
 {
   findf_regex_f *to_init = NULL;
+  char error_string[F_MAXNAMELEN];
+  int reg_errorcode = 0;
 
   if ((to_init = malloc(sizeof(findf_regex_f))) == NULL){
     intern_errormesg("Malloc");
@@ -37,29 +41,32 @@ findf_regex_f* intern__findf__init_regex(void)
     intern_errormesg("Malloc");
     goto cleanup;
   }
-  to_init->fre_modif_boleol = false;
-  to_init->fre_modif_newline = false;
-  to_init->fre_modif_icase = false;
-  to_init->fre_modif_ext = false;
-  to_init->fre_modif_global = false;
-  to_init->fre_op_match = false;
-  to_init->fre_op_substitute = false;
-  to_init->fre_op_transliterate = false;
 
+  if ((reg_errorcode = regcomp(to_init->pattern,
+			       pattern,
+			       (compw_newline == true) ? REG_NEWLINE : 0 |
+			       (compw_icase == true) ? REG_ICASE : 0 |
+			       REG_EXTENDED |
+			       REG_NOSUB)) != 0){
+    
+    regerror(reg_errorcode, to_init->pattern, error_string, F_MAXNAMELEN);
+    intern_errormesg(error_string);
+    goto cleanup;
+  }
 
   return to_init;
 
  cleanup:
   if (to_init){
     if (to_init->pattern){
-      free(to_init->pattern);
+      regfree(to_init->pattern);
       to_init->pattern = NULL;
     }
     free(to_init);
   }
   return NULL;
 }
-
+*/
 
 int intern__findf__free_regex(findf_regex_f* to_free)
 {
@@ -100,20 +107,19 @@ int intern__findf__free_regarray(findf_regex_f** to_free,
  * of a given expression and returns the stripped pattern.
  */
 char* intern__findf__strip_pattern(char *intern_pattern,
-				   char *stripped_pattern,
 				   findf_regex_f *freg_object)
 {
   bool reach_delimiter = false;
   size_t pattern_char = 0;
   size_t stripped_pattern_c = 0;
-  /*  char *stripped_pattern = NULL;*/
+  char *stripped_pattern = NULL;
   char delimiter;
 
-  /*  if ((stripped_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
+  if ((stripped_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
     intern_errormesg("Malloc");
     return NULL;
-    }*/
-  memset(stripped_pattern, 0, FINDF_MAX_PATTERN_LEN);
+  }
+
   /* Fetch the operation. */
   switch(intern_pattern[0]){
   case 'm':
@@ -241,8 +247,8 @@ findf_regex_f** intern__findf__parse_patterns(char **patterns,
     return NULL;
   }
   for (i = 0; i < numof_patterns; i++){
-    if ((reg_array[i] = intern__findf__init_regex()) == NULL){
-      intern_errormesg("intern__findf__init_regex");
+    if ((reg_array[i] = malloc(sizeof(findf_regex_f))) == NULL){
+      intern_errormesg("Malloc");
       goto cleanup;
     }
   }
@@ -262,13 +268,12 @@ findf_regex_f** intern__findf__parse_patterns(char **patterns,
       goto cleanup;
     }
     /* Strip the pattern of all its operation, delimiter and modifier characters. */
-    if (intern__findf__strip_pattern(intern_pattern, tmp_pattern, reg_array[patterns_c]) == NULL){
+    if ((intern_pattern = intern__findf__strip_pattern(intern_pattern, reg_array[patterns_c])) == NULL){
       intern_errormesg("Could not strip pattern");
       goto cleanup;
     }
 
-    tmp_pattern_len =  strlen(intern_pattern);
-    intern_pattern_len = strlen(intern_pattern);
+    tmp_pattern_len = intern_pattern_len = strlen(intern_pattern);
     /* 
      * Loop over each characters of the pattern.
      * Look for escape sequences, comments, spaces etc..
@@ -282,132 +287,16 @@ findf_regex_f** intern__findf__parse_patterns(char **patterns,
 	tmp_pattern[tmp_pattern_c] = '\0';
 	break;
       }
-      /* Look for escape sequences not supported by POSIX. */
-      if (intern_pattern[pattern_char] == '\\'){
-	switch(intern_pattern[pattern_char + 1]){
-	case 'd':
-	  /* Make sure the modified pattern stays within POSIX's lenght limits. */
-	  if ((tmp_pattern_len + 3) >= FINDF_MAX_PATTERN_LEN){
-	    /* 
-	     * +3:   '\d' = 2;
-	     *       '[0-9]= 5;
-	     */ 
-	    intern_errormesg("Modified pattern breaking POSIX's lenght limit");
-	    goto cleanup;
-	  }
-	  for (i = 0; FRE_DIGIT_RANGE[i] != '\0'; i++, tmp_pattern_c++)
-	    tmp_pattern[tmp_pattern_c] = FRE_DIGIT_RANGE[i];
-	  /* Adjust the lenght. */
-	  tmp_pattern_len += 3;
-	  break;
-
-	case 'D':
-	  /* Make sure the modified pattern stays within POSIX's lenght limits. */
-	  if ((tmp_pattern_len + 4) >= FINDF_MAX_PATTERN_LEN){
-	    /* 
-	     * +4:    '\D' = 2;
-	     *        '[^0-9] = 6;
-	     */
-	    intern_errormesg("Modified pattern breaking POSIX's lenght limit");
-	    goto cleanup;
-	  }
-	  for (i = 0; FRE_NOT_DIGIT_RANGE[i] != '\0'; i++, tmp_pattern_c++)
-	    tmp_pattern[tmp_pattern_c] = FRE_NOT_DIGIT_RANGE[i];
-	  /* Adjust the lenght. */
-	  tmp_pattern_len += 4;
-	  break;
-
-	  /* Other escape sequences go here ! */
-
-	default:
-	  /* 
-	   * Ignore escape sequences not listed above, 
-	   * either they are invalid or already supported by POSIX.
-	   */
-	  break;
-	}
-      } /* If (... == '\\') */
-
-      /* 
-       * Check if the '/x' modifier was used,
-       * if so, ignore any spaces of any kinds and
-       * skip any lines begining by a litteral '#'.
-       */
-      else if (reg_array[patterns_c]->fre_modif_ext == true){
-	if (isspace(intern_pattern[pattern_char])){
-	  continue;
-	}
-	else if (intern_pattern[pattern_char] == '#') {
-	  for (; intern_pattern[pattern_char] != '\0'; pattern_char++){
-	    /* 
-	     * The compiler will very likely optimize-merge this loop 
-	     * tecnicaly it's the same as the outer loop. 
-	     */
-	    __asm__(""); 
-	    if (intern_pattern[pattern_char] == '\n')
-	      break;
-	    else
-	      continue;
-	  }
-	}
-      }
-      else {
-	tmp_pattern[tmp_pattern_c++] = intern_pattern[pattern_char];
-      }
-      
-    }
-    /* Ready to compile the pattern. */
-    if (regcomp(reg_array[patterns_c]->pattern,
-		tmp_pattern,
-		(reg_array[patterns_c]->fre_modif_newline == true) ? 0 : REG_NEWLINE |
-		(reg_array[patterns_c]->fre_modif_icase == true) ? REG_ICASE : 0 |
-		REG_EXTENDED |
-		REG_NOSUB) != 0) {
-      intern_errormesg("Regcomp failed to compile the pattern.");
-      goto cleanup;
-    }
-    /* Plugin the appropriate operation now. */
-    if (reg_array[patterns_c]->fre_op_match == true)
-      reg_array[patterns_c]->operation = dummy;
-    else if (reg_array[patterns_c]->fre_op_substitute == true)
-      reg_array[patterns_c]->operation = dummy;
-    else if (reg_array[patterns_c]->fre_op_transliterate == true)
-      reg_array[patterns_c]->operation = dummy;
-    else {
-      intern_errormesg("Unknown operation in pattern.");
-      goto cleanup;
+	 
+	  
     }
 
-    
-    /* Get next pattern. */
-    continue;
-  } /* For patterns_c = 0... */
-
-  /* 
-   * When the previous loop terminate, 
-   * the array of compiled pattern is ready to be used. 
-   *
-   * Cleanup behind ourself. 
-   */
-  if(tmp_pattern){
-    free(tmp_pattern);
-    tmp_pattern = NULL;
   }
-  if (intern_pattern){
-    free(intern_pattern);
-    intern_pattern = NULL;
-  }
+  
 
-  return reg_array;
-  
-  
  cleanup:
   if (reg_array){
     for (i = 0; i < numof_patterns; i++){
-      if (reg_array[i]->pattern){
-	free(reg_array[i]->pattern);
-	reg_array[i]->pattern = NULL;
-      }
       if (reg_array[i]){
 	free(reg_array[i]);
 	reg_array[i] = NULL;

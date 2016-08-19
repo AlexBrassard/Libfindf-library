@@ -411,6 +411,12 @@ findf_param_f *intern__findf__init_param(char **_file2find,
 int intern__findf__free_param(findf_param_f *to_free)
 {
   size_t i;
+  /* 
+   * Valgrind will complain that:
+   * "Conditional jump or move depends on uninitialised value(s)"
+   * but findf_re() needs to be able to handle NULL 
+   * valued file2find field. So here we are.
+   */
 
   if (to_free->file2find){
     for (i = 0; i < to_free->sizeof_file2find; i++){

@@ -40,11 +40,14 @@
  * Represents the dot '.' and dotdot '..' directories
  * and their respective lenghts. 
  */
-static const char DOT[] = ".\0";
-static const char DOTDOT[] = "..\0";
+static const char DOT[] = ".";
+static const char DOTDOT[] = "..";
 static const size_t DOTLEN = 2;
 static const size_t DOTDOTLEN = 3;
 
+/* REGEX Constants. */
+static const char FRE_DIGIT_RANGE[] = "[0-9]";
+static const char FRE_NOT_DIGIT_RANGE[] = "[^0-9]";
 
 extern findf_list_f *temporary_container;   /* Global list used by all threads as temporary buffer. */
 extern pthread_mutex_t stderr_mutex;        /* Lock to serialize debug messages on stderr stream. */ 
@@ -157,17 +160,20 @@ int intern__findf__rotate_buffer(size_t *sorted_array,
 				 size_t ind_to_move,
 				 size_t *last_pos_ind);
 
-/* Initialize a findf_regex_f object pointer. */
-findf_regex_f* intern__findf__init_regex(char *pattern,
-					 bool compw_icase,
-					 bool compw_newline);
-
 /* Release resources of a findf_regex_f object. */
 int intern__findf__free_regex(findf_regex_f *to_free);
 
 /* Release resources of an array of findf_regex_f object. */
 int intern__findf__free_regarray(findf_regex_f **reg_array,
 				 size_t numof_patterns);
+
+/* Strip the pattern from its operation, delimiters and modifiers. */
+char *intern__findf__strip_pattern(char *intern_pattern,
+				   char *buffer,
+				   findf_regex_f *freg_object);
+
+/* Allocate memory for a single findf_regex_f object. */
+findf_regex_f* intern__findf__init_regex(void);
 
 /* Parse each Perl-like regex pattern into a fully POSIX compliant pattern. */
 findf_regex_f** intern__findf__parse_patterns(char **patterns,

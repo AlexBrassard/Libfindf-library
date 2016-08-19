@@ -67,9 +67,12 @@ int findf_re(findf_param_f *sparam,
     fprintf(stderr, "%s - Too many patterns.\nUsing only the first %zu\n\n", __func__, numof_patterns);
     pthread_mutex_unlock(&stderr_mutex);
   }
-  /* Call intern__findf__parse_pattern() here. */
-
-
+  if ((reg_array = intern__findf__parse_patterns(patterns, numof_patterns)) == NULL){
+    findf_perror("Failed to parse patterns");
+    return ERROR;
+  }
+  
+  intern__findf__free_regarray(reg_array, numof_patterns);
 
 
   return RF_OPSUCC;

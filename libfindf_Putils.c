@@ -160,7 +160,7 @@ findf_param_f *findf_init_param(char **file2find,
 					     search_type,
 					     sort_type,
 					     NULL,
-					     NULL,  /* Set by findf_adv(), if needed. */
+					     NULL, /* Set by findf_adv(), if needed. */
 					     NULL, /* Set by findf_adv(), if needed. */
 					     NULL)) == NULL)
       goto cleanup;
@@ -190,6 +190,8 @@ findf_param_f *findf_init_param(char **file2find,
   }
   return NULL;
 }
+
+
 /* Destroy a findf_param_f object. */
 int findf_destroy_param(findf_param_f *to_free)
 {
