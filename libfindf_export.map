@@ -1,7 +1,7 @@
 libfindf.so{
 	global:
 	   findf; findf_fg; findf_adv; findf_init_param; findf_destroy_param; findf_read_results; findf_destroy_results; 
-	   findf_re; SU_strcpy; temporary_container; stderr_mutex; intern__findf__parse_patterns; intern__findf__free_regarray;
+	   findf_re; SU_strcpy; temporary_container; stderr_mutex;
 	local:
 	   *;
 };
