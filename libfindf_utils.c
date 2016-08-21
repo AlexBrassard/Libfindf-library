@@ -298,7 +298,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   /* goto label init_param_err;          Clean up on error. */
 
   /* 
-   * We assume all parameters are valid.
+   * We assume (almost) all parameters are valid.
    * In theory, a user should never see nor use this routine,
    * but use only the public-facing findf_init_param() routine which does
    * verify all of its parameters.
@@ -312,7 +312,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   }
 
   /* Allocate memory to the file to find's array. */
-  if (_file2find){ /* findf_re requires to let NULL slip in. */
+  if (_file2find != NULL && numof_file2find > 0){ /* findf_re requires to let NULL slip in. */
     if ((to_init->file2find = calloc(numof_file2find, sizeof(char *))) == NULL){
       error_mesg = "Malloc";
       goto init_param_err;
@@ -329,6 +329,15 @@ findf_param_f *intern__findf__init_param(char **_file2find,
       }
     }
   }
+  /* 
+   * Else if caller's file2find is NULL, 
+   * explicitely set to_init->file2find to NULL
+   * to avoid invalid free/delete later on.
+   */
+  else {
+    to_init->file2find = NULL;
+  }
+
   /* Allocate memory to the search_roots list. */
   if ((to_init->search_roots = intern__findf__init_node(numof_search_roots >= DEF_LIST_SIZE 
 							? numof_search_roots 
@@ -410,17 +419,16 @@ findf_param_f *intern__findf__init_param(char **_file2find,
 
 int intern__findf__free_param(findf_param_f *to_free)
 {
-  size_t i;
+  size_t i = 0;
   /* 
    * Valgrind will complain that:
    * "Conditional jump or move depends on uninitialised value(s)"
    * but findf_re() needs to be able to handle NULL 
    * valued file2find field. So here we are.
    */
-
-  if (to_free->file2find){
+  if (to_free->file2find != NULL){
     for (i = 0; i < to_free->sizeof_file2find; i++){
-      if (to_free->file2find[i]){
+      if (to_free->file2find[i] != NULL){
 	free(to_free->file2find[i]);
 	to_free->file2find[i] = NULL;
       }
@@ -432,7 +440,9 @@ int intern__findf__free_param(findf_param_f *to_free)
     /* Print what just happened and continue. */
     intern_errormesg("Failed to release resources of a parameter's list.\n");
   }
-  
+  if (to_free->reg_array != NULL){
+    intern__findf__free_regarray(to_free->reg_array, to_free->sizeof_reg_array);
+  }
 
   to_free->search_roots = NULL;
   to_free->search_results = NULL;
@@ -516,16 +526,36 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
 {
   size_t i = 0;
   size_t _file2find_len = 0;
-
-  for (i = 0; i < t_param->sizeof_file2find ; i++){
-    _file2find_len = strnlen(t_param->file2find[i], F_MAXNAMELEN - 1);
-    if (memcmp(t_param->file2find[i], entry_to_cmp, _file2find_len) == 0){
-      if (intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
-	intern_errormesg("Failed to add a new element to a parameter's search_results list.\n");
-	abort(); /* I think I'm being a little rude here.. */
+  if(t_param->sizeof_file2find > 0){
+    for (i = 0; i < t_param->sizeof_file2find ; i++){
+      _file2find_len = strnlen(t_param->file2find[i], F_MAXNAMELEN - 1);
+      if (memcmp(t_param->file2find[i], entry_to_cmp, _file2find_len) == 0){
+	if (intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
+	  intern_errormesg("Failed to add a new element to a parameter's search_results list.\n");
+	  abort(); /* I think I'm being a little rude here.. */
+	}
       }
     }
   }
+  /*
+   * Try to match each patterns against the filename,
+   * If it matches and the operation is substitute or transliterate,
+   * execute the operation.
+   * Test against disapearing files and the likes. 
+   */
+  if (t_param->sizeof_reg_array > 0){
+    for(i = 0; i < t_param->sizeof_reg_array; i++){
+      if (regexec(t_param->reg_array[i]->pattern,
+		  entry_to_cmp,
+		  0, NULL, 0) == 0){
+	if (intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
+	  intern_errormesg("Failed to add element to search_results list");
+	  abort();
+	}
+      }
+    }
+  }
+      
 } /* intern__findf__cmp_file2find() */
 
 

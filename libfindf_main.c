@@ -48,32 +48,32 @@ int intern__findf__internal(findf_param_f *callers_param)
     ERR = true;
     goto advance_to_cleanup;
   }
-
+  
   if ((internal_headnode->next = intern__findf__init_node(DEF_LIST_SIZE, level++, false)) == NULL){
     intern_errormesg("Failed to initialise a new node.\n");
     ERR = true;
     goto advance_to_cleanup;
   }
   /* For ease of use. */
- internal_nextnode = internal_headnode->next;
+  internal_nextnode = internal_headnode->next;
 
- numof_threads = intern__findf__get_avail_cpus();
- if ((thread_pool = intern__findf__init_tpool(numof_threads)) == NULL) {
+  numof_threads = intern__findf__get_avail_cpus();
+  if ((thread_pool = intern__findf__init_tpool(numof_threads)) == NULL) {
     intern_errormesg("Failed to initialize a thread pool.\n");
     ERR = true;
     goto advance_to_cleanup;
   }
-
+  
   /* 
    * Allocate memory to the array of parameters, then let _init_param handle
    * each elements individualy. 
    */
- if ((threads_params = calloc(numof_threads, sizeof(findf_param_f))) == NULL){
+  if ((threads_params = calloc(numof_threads, sizeof(findf_param_f))) == NULL){
     perror("calloc");
     ERR = true;
     goto advance_to_cleanup;
   }
-  for (i = 0; i < thread_pool->num_of_threads ; i++)
+  for (i = 0; i < thread_pool->num_of_threads ; i++){
     if ((threads_params[i] = intern__findf__init_param(callers_param->file2find,
 						       NULL, /* Will be distributed later on. */
 						       callers_param->sizeof_file2find,
@@ -89,10 +89,21 @@ int intern__findf__internal(findf_param_f *callers_param)
       ERR = true;
       goto advance_to_cleanup;
     }
-
+    /* Add the caller's pattern array to the parameter object. */
+    threads_params[i]->sizeof_reg_array = callers_param->sizeof_reg_array;
+    threads_params[i]->reg_array = callers_param->reg_array;
+    /*
+    if ((threads_params[i]->reg_array = intern__findf__copy_regarray(callers_param->reg_array,
+								     callers_param->sizeof_reg_array)) == NULL){
+      intern_errormesg("Failed to copy reg_array to a thread's search parameter");
+      ERR = true;
+      goto advance_to_cleanup;
+      }*/
+      
+  }
 
   /* Execution. */
-
+  
   /* Check if there's enough root directories to deploy threads now. */
   if (callers_param->search_roots->position < thread_pool->num_of_threads) {
     /* Populate the linked-list's headnode. */
@@ -288,6 +299,8 @@ int intern__findf__internal(findf_param_f *callers_param)
   if (threads_params){
     for (i = 0; i < thread_pool->num_of_threads; i++){
       if (threads_params[i]){
+	/* NULL out copies of the callers_param->reg_array we've made earlier. */
+	threads_params[i]->reg_array = NULL;
 	if (intern__findf__free_param(threads_params[i]) != RF_OPSUCC){
 	  intern_errormesg("Failed to release an internal parameter.\n");
 	  /* Don't return an error, break out the loop and continue freeing. */

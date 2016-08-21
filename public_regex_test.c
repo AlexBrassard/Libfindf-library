@@ -18,13 +18,13 @@ int main(void)
   /*  if ((file2find = calloc(numof_file2find, sizeof(char*))) == NULL){
     findf_perror("Calloc failure.");
     goto cleanup;
-    }*/
+    }
   for(i = 0; i < numof_file2find; i++){
     if ((file2find[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
       findf_perror("Calloc failure.");
       goto cleanup;
     }
-  }
+    }*/
 
   /* Search's root. */
   if ((search_roots = calloc(numof_search_roots, sizeof(char*))) == NULL){

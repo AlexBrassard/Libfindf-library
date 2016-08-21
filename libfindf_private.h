@@ -179,6 +179,8 @@ findf_regex_f* intern__findf__init_regex(void);
 findf_regex_f** intern__findf__parse_patterns(char **patterns,
 					      size_t numof_patterns);
 
-
+/* Make a copy of the caller's findf_regex_f * array. */
+findf_regex_f** intern__findf__copy_regarray(findf_regex_f **reg_array,
+					     size_t numof_elements);
 
 #endif /* FINDF_PRIVATE_HEADER */

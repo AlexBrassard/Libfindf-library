@@ -37,6 +37,8 @@ findf_regex_f* intern__findf__init_regex(void)
     intern_errormesg("Malloc");
     goto cleanup;
   }
+
+  to_init->operation = NULL;
   to_init->fre_modif_boleol = false;
   to_init->fre_modif_newline = false;
   to_init->fre_modif_icase = false;
@@ -49,7 +51,7 @@ findf_regex_f* intern__findf__init_regex(void)
 
   return to_init;
 
- cleanup:
+   cleanup:
   if (to_init){
     if (to_init->pattern){
       free(to_init->pattern);
@@ -68,12 +70,15 @@ int intern__findf__free_regex(findf_regex_f* to_free)
     errno = ENODATA;
     return RF_OPSUCC;
   }
+  /*if (to_free->pattern != NULL){ */
   regfree(to_free->pattern);
-  if (to_free->pattern)
+  if (to_free->pattern != NULL)
     free(to_free->pattern);
   to_free->pattern = NULL;
+    /*}*/
   to_free->operation = NULL;
   free(to_free);
+  to_free = NULL;
   return RF_OPSUCC;
 
 }
@@ -87,13 +92,51 @@ int intern__findf__free_regarray(findf_regex_f** to_free,
     errno = ENODATA;
     return RF_OPSUCC;
   }
-  for (; i < numof_patterns; i++)
-    intern__findf__free_regex(to_free[i]);
+  for (i = 0; i < numof_patterns; i++){
+    if (to_free[i] != NULL){
+      intern__findf__free_regex(to_free[i]);
+      to_free[i] = NULL;
+    }
+  }
   free(to_free);
-
+  to_free = NULL;
+  
   return RF_OPSUCC;
 }
 
+findf_regex_f** intern__findf__copy_regarray(findf_regex_f **reg_array, size_t numof_elements)
+{
+  size_t i = 0;
+  findf_regex_f **to_init = NULL;
+  
+  if (reg_array == NULL
+      || numof_elements == 0){
+    errno = EINVAL;
+    return NULL;
+  }
+
+  if ((to_init = malloc(numof_elements *sizeof(findf_regex_f*))) == NULL){
+    intern_errormesg("Malloc");
+    return NULL;
+  }
+  for (i = 0; i < numof_elements; i++){
+    to_init[i] = intern__findf__init_regex();
+    to_init[i]->pattern = reg_array[i]->pattern;
+    to_init[i]->operation = reg_array[i]->operation;
+    to_init[i]->fre_modif_newline = reg_array[i]->fre_modif_newline;
+    to_init[i]->fre_modif_global = reg_array[i]->fre_modif_global;
+    to_init[i]->fre_modif_icase = reg_array[i]->fre_modif_icase;
+    to_init[i]->fre_modif_ext = reg_array[i]->fre_modif_ext;
+    to_init[i]->fre_modif_boleol = reg_array[i]->fre_modif_boleol;
+    to_init[i]->fre_op_match = reg_array[i]->fre_op_match;
+    to_init[i]->fre_op_substitute = reg_array[i]->fre_op_substitute;
+    to_init[i]->fre_op_transliterate = reg_array[i]->fre_op_transliterate;
+  }
+
+  return to_init;
+}
+
+  
 
 /*
  * Removes the operation, delimiters and modifiers
@@ -366,6 +409,7 @@ findf_regex_f** intern__findf__parse_patterns(char **patterns,
       intern_errormesg("Regcomp failed to compile the pattern.");
       goto cleanup;
     }
+    
     /* Plugin the appropriate operation now. */
     if (reg_array[patterns_c]->fre_op_match == true)
       reg_array[patterns_c]->operation = dummy;
@@ -377,7 +421,6 @@ findf_regex_f** intern__findf__parse_patterns(char **patterns,
       intern_errormesg("Unknown operation in pattern.");
       goto cleanup;
     }
-
     
     /* Get next pattern. */
     continue;
@@ -404,14 +447,11 @@ findf_regex_f** intern__findf__parse_patterns(char **patterns,
  cleanup:
   if (reg_array){
     for (i = 0; i < numof_patterns; i++){
-      if (reg_array[i]->pattern){
-	free(reg_array[i]->pattern);
-	reg_array[i]->pattern = NULL;
-      }
       if (reg_array[i]){
-	free(reg_array[i]);
+	intern__findf__free_regex(reg_array[i]);
 	reg_array[i] = NULL;
       }
+
     }
     free(reg_array);
   }

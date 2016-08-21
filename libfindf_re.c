@@ -51,11 +51,13 @@ int findf_re(findf_param_f *sparam,
       errno = EINVAL;
       return ERROR;
     }
-    if (intern__findf__internal(sparam) != RF_OPSUCC){
-      findf_perror("Failed to execute the search");
-      return ERROR;
+    else{
+      if (intern__findf__internal(sparam) != RF_OPSUCC){
+	findf_perror("Failed to execute the search");
+	return ERROR;
+      }
+      return RF_OPSUCC;
     }
-    return RF_OPSUCC;
   }
   else if (numof_patterns > FINDF_MAX_PATTERNS){
     /* 
@@ -71,9 +73,15 @@ int findf_re(findf_param_f *sparam,
     findf_perror("Failed to parse patterns");
     return ERROR;
   }
+  /* Include the array of regex patterns to the caller's findf_param_f object. */
+  sparam->sizeof_reg_array = numof_patterns;
+  sparam->reg_array = reg_array;
   
-  intern__findf__free_regarray(reg_array, numof_patterns);
-
+  /* Execute the search. */
+  if (intern__findf__internal(sparam) != RF_OPSUCC){
+    intern_errormesg("Failed to execute the search");
+    return ERROR;
+  }
 
   return RF_OPSUCC;
 }

@@ -101,6 +101,7 @@ typedef struct srch_param_f {
   void              *sarg;                  /* Argument passed to a custom sort routine. */
   void              *(*algorithm)(void *);  /* Pointer to a custom search algorithm. */
   void              *arg;                   /* Argument passed to a custom search algorithm. */
+  size_t            sizeof_reg_array;       /* Number of element in the reg_array array. */
   findf_regex_f     **reg_array;            /* Used by findf_re to do a regex-based search. */
 
 } findf_param_f;
