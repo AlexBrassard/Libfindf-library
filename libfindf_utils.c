@@ -544,6 +544,13 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
    * Test against disapearing files and the likes. 
    */
   if (t_param->sizeof_reg_array > 0){
+    /* (SEE Descriptions/Regex_functions.txt first).
+     * For each patterns, 
+     * Call its reg_array[we]->operation, passing it the corresponding
+     * findf_regex_f object casted to void *.
+     * Once returned, check the reg_array[we]->return_val to see if
+     * operation was successful.
+     */
     for(i = 0; i < t_param->sizeof_reg_array; i++){
       if (regexec(t_param->reg_array[i]->pattern,
 		  entry_to_cmp,

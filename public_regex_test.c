@@ -56,11 +56,11 @@ int main(void)
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }
-  if (SU_strcpy(patterns[1], "s/a.b/g", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[1], "s/a.b/abo/g", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
   }
-  if (SU_strcpy(patterns[2], "m/b?c*/i", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[2], "tr/bcty/gfds/i", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
   }

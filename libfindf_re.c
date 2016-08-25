@@ -69,19 +69,11 @@ int findf_re(findf_param_f *sparam,
     fprintf(stderr, "%s - Too many patterns.\nUsing only the first %zu\n\n", __func__, numof_patterns);
     pthread_mutex_unlock(&stderr_mutex);
   }
-  if ((reg_array = intern__findf__parse_patterns(patterns, numof_patterns)) == NULL){
-    findf_perror("Failed to parse patterns");
-    return ERROR;
-  }
-  /* Include the array of regex patterns to the caller's findf_param_f object. */
-  sparam->sizeof_reg_array = numof_patterns;
-  sparam->reg_array = reg_array;
-  
-  /* Execute the search. */
-  if (intern__findf__internal(sparam) != RF_OPSUCC){
-    intern_errormesg("Failed to execute the search");
-    return ERROR;
-  }
 
+  if ((sparam->reg_array = intern__findf__init_parser(patterns, numof_patterns)) == NULL){
+    intern_errormesg("Intern__findf__init_parser failure");
+    return ERROR;
+  }
+  sparam->sizeof_reg_array = numof_patterns;
   return RF_OPSUCC;
 }

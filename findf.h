@@ -72,6 +72,21 @@ typedef enum sort_type_f {
 
 } findf_sort_type_f;
 
+
+/*
+ * For match op:         pattern1: Stripped off pattern.
+ *                       pattern2: Unused.
+ * For substitute op:    pattern1: Stripped off "to replace" pattern.
+ *                       pattern2: Stripped off replacement pattern.
+ * For transliterate op: pattern1: List of characters to be replaced.
+ *                       pattern2: List of replacement characters.
+ */
+typedef struct fstorage{
+  char             *pattern1;
+  char             *pattern2;
+
+} findf_opstore_f;
+
 /* Libfindf's regex data structure. */
 typedef struct fregex{
   bool             fre_modif_boleol;         /* True when the '\m' modifier is activated. */
@@ -82,9 +97,12 @@ typedef struct fregex{
   bool             fre_op_match;             /* True when operation is match. */
   bool             fre_op_substitute;        /* True when operation is substitute. */
   bool             fre_op_transliterate;     /* True when operation is transliterate. */
+  char             delimiter;                /* The delimiter used by the pattern. */
+  int              (*operation)(struct fregex*); /* A pointer to the operation to execute on the regex. */
+  int              fre_op_return_val;        /* operation's return value. */
   regex_t          *pattern;                 /* A compiled regex pattern via a call to regcomp(). */
-  void*            (*operation)(void*);      /* A pointer to the operation to execute on the regex. */
-
+  findf_opstore_f  *pat_storage;             /* Type of pattern storage used, depending on the operation. */
+  
 } findf_regex_f;
 
 /* Libfindf search parameter data structure. */
@@ -149,7 +167,7 @@ typedef struct reslist{
 #define FINDF_MAX_PATTERNS 4096
 
 /* Default maximum lenght of a single regex pattern. */
-#define FINDF_MAX_PATTERN_LEN 256       /* 256 is the limit to remain POSIX compliant. */
+#define FINDF_MAX_PATTERN_LEN 256       /* 256 is the limit to remain POSIX conformant. */
 
 /* Default standard Unix root. */
 #define DEF_UNIX_ROOT "/\0"

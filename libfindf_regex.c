@@ -18,13 +18,8 @@
 
 #include "libfindf_private.h"
 
-/* Dummy */
-void *dummy(void *dumdum){
-  printf("inside dummy\n\n");
-  return ((void*)1);
-}
 
-/* Initialize a findf_regex_f object. */
+/* Allocate memory to a single findf_regex_f object. */
 findf_regex_f* intern__findf__init_regex(void)
 {
   findf_regex_f *to_init = NULL;
@@ -37,7 +32,19 @@ findf_regex_f* intern__findf__init_regex(void)
     intern_errormesg("Malloc");
     goto cleanup;
   }
-
+  if ((to_init->pat_storage = malloc(sizeof(findf_opstore_f))) == NULL){
+    intern_errormesg("Malloc");
+    goto cleanup;
+  }
+  if ((to_init->pat_storage->pattern1 = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
+    intern_errormesg("Calloc");
+    goto cleanup;
+  }
+  if ((to_init->pat_storage->pattern2 = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
+    intern_errormesg("Calloc");
+    goto cleanup;
+  }
+  
   to_init->operation = NULL;
   to_init->fre_modif_boleol = false;
   to_init->fre_modif_newline = false;
@@ -51,11 +58,24 @@ findf_regex_f* intern__findf__init_regex(void)
 
   return to_init;
 
-   cleanup:
+
+ cleanup:
   if (to_init){
     if (to_init->pattern){
       free(to_init->pattern);
       to_init->pattern = NULL;
+    }
+    if (to_init->pat_storage != NULL){
+      if (to_init->pat_storage->pattern1 != NULL) {
+	free(to_init->pat_storage->pattern1);
+	to_init->pat_storage->pattern1 = NULL;
+      }
+      if (to_init->pat_storage->pattern2 != NULL){
+	free(to_init->pat_storage->pattern2);
+	to_init->pat_storage->pattern2 = NULL;
+      }
+      free(to_init->pat_storage);
+      to_init->pat_storage = NULL;
     }
     free(to_init);
   }
@@ -63,6 +83,7 @@ findf_regex_f* intern__findf__init_regex(void)
 }
 
 
+/* Deallocate memory of a single findf_regex_f object. */
 int intern__findf__free_regex(findf_regex_f* to_free)
 {
   /* Set errno if the findf_regex_f pointer is NULL but succeed anyway. */
@@ -70,12 +91,22 @@ int intern__findf__free_regex(findf_regex_f* to_free)
     errno = ENODATA;
     return RF_OPSUCC;
   }
-  /*if (to_free->pattern != NULL){ */
-  regfree(to_free->pattern);
+  //  regfree(to_free->pattern);
   if (to_free->pattern != NULL)
     free(to_free->pattern);
   to_free->pattern = NULL;
-    /*}*/
+  if (to_free->pat_storage != NULL){
+    if (to_free->pat_storage->pattern1 != NULL){
+      free(to_free->pat_storage->pattern1);
+      to_free->pat_storage->pattern1 = NULL;
+    }
+    if (to_free->pat_storage->pattern2 != NULL){
+      free(to_free->pat_storage->pattern2);
+      to_free->pat_storage->pattern2 = NULL;
+    }
+    free(to_free->pat_storage);
+    to_free->pat_storage = NULL;
+  }
   to_free->operation = NULL;
   free(to_free);
   to_free = NULL;
@@ -83,6 +114,7 @@ int intern__findf__free_regex(findf_regex_f* to_free)
 
 }
 
+/* Deallocate memory for an array of findf_regex_f* objects. */
 int intern__findf__free_regarray(findf_regex_f** to_free,
 				 size_t numof_patterns)
 {
@@ -104,362 +136,449 @@ int intern__findf__free_regarray(findf_regex_f** to_free,
   return RF_OPSUCC;
 }
 
-findf_regex_f** intern__findf__copy_regarray(findf_regex_f **reg_array, size_t numof_elements)
-{
-  size_t i = 0;
-  findf_regex_f **to_init = NULL;
-  
-  if (reg_array == NULL
-      || numof_elements == 0){
-    errno = EINVAL;
-    return NULL;
-  }
 
-  if ((to_init = malloc(numof_elements *sizeof(findf_regex_f*))) == NULL){
-    intern_errormesg("Malloc");
-    return NULL;
-  }
-  for (i = 0; i < numof_elements; i++){
-    to_init[i] = intern__findf__init_regex();
-    to_init[i]->pattern = reg_array[i]->pattern;
-    to_init[i]->operation = reg_array[i]->operation;
-    to_init[i]->fre_modif_newline = reg_array[i]->fre_modif_newline;
-    to_init[i]->fre_modif_global = reg_array[i]->fre_modif_global;
-    to_init[i]->fre_modif_icase = reg_array[i]->fre_modif_icase;
-    to_init[i]->fre_modif_ext = reg_array[i]->fre_modif_ext;
-    to_init[i]->fre_modif_boleol = reg_array[i]->fre_modif_boleol;
-    to_init[i]->fre_op_match = reg_array[i]->fre_op_match;
-    to_init[i]->fre_op_substitute = reg_array[i]->fre_op_substitute;
-    to_init[i]->fre_op_transliterate = reg_array[i]->fre_op_transliterate;
-  }
 
-  return to_init;
-}
-
-  
-
-/*
- * Removes the operation, delimiters and modifiers
- * of a given expression and returns the stripped pattern.
+/* 
+ * MACRO. Add current token to the apropriate stack.
+ * Not needed, just hoping to make things clearer.
  */
-char* intern__findf__strip_pattern(char *intern_pattern,
-				   char *stripped_pattern,
+#define intern__findf__push(token, stack, tos) do { \
+    stack[*tos] = token;			    \
+    ++(*tos);					    \
+  } while (0);
+
+/* MACRO. Check validity of the pattern's modifier(s). */
+#ifndef intern__findf__validate_modif
+# define intern__findf__validate_modif(modifiers) int i = 0;		\
+  while(modifiers[i] != '\0') {						\
+    switch(modifiers[i]) {						\
+    case 'm':								\
+      freg_object->fre_modif_boleol = true;				\
+      break;								\
+    case 's':								\
+      freg_object->fre_modif_newline = true;				\
+      break;								\
+    case 'i':								\
+      freg_object->fre_modif_icase = true;				\
+      break;								\
+    case 'g':								\
+      freg_object->fre_modif_global = true;				\
+      break;								\
+    case 'x':								\
+      freg_object->fre_modif_ext = true;				\
+      break;								\
+    default:								\
+      intern_errormesg("Unknown modifier in pattern");			\
+      return ERROR;							\
+    }									\
+    i++;								\
+  }
+#endif
+
+/* verify how you call it. */
+int intern__findf__validate_esc_seq(char token,
+				    char *buffer,
+				    size_t *buf_ind,
+				    size_t *buf_len)
+{
+
+  size_t i = 0;								
+
+  switch(token){							
+  case 'd':								
+    /*
+     * + 3:    '\d'    = 2
+     *         '[0-9]' = 5
+     */
+    if ((buffer_len + 3) >= FINDF_MAX_PATTERN_LEN) {
+      pthread_mutex_lock(&stderr_mutex);
+      fprintf(stderr, "Modified pattern breaks POSIX pattern's lenght limit (%d)\nChanging '\\d' into '[0-9]\n\n",
+	      FINDF_MAX_PATTERN_LEN);
+      pthread_mutex_unlock(&stderr_mutex);
+      return ERROR;
+    }					
+    while (FRE_DIGIT_RANGE[i] != '\0'){
+      buffer[(*buf_ind)++] = FRE_DIGIT_RANGE[i++];
+    }			
+    *buf_len += 3;
+    break;
+  case 'D':
+    /* 
+     * + 4:    '\D'     = 2
+     *         '[^0-9]' = 6
+     */
+    if ((buffer_len + 4) >= FINDF_MAX_PATTERN_LEN){
+      pthread_mutex_lock(&stderr_mutex);
+      fprintf(stderr, "Modified pattern breaks POSIX pattern's lenght limit (%d)\nChanging '\\D' into '[^0-9]'\n\n",
+	      FINDF_MAX_PATTERN_LEN);
+      pthread_mutex_unlock(&stderr_mutex);
+      return ERROR;
+    }
+    while(FRE_NOT_DIGIT_RANGE[i] != '\0'){
+      buffer[(*buf_ind)++] = FRE_NOT_DIGIT_RANGE[i++];
+    }
+    *buf_len += 4;
+    break
+  default:
+      /* Assume supported escape sequence. */
+      break;
+  }
+} /* intern__findf__validate_esc_seq() */
+
+		     
+char *intern__findf__perl_to_posix(char *pattern,
 				   findf_regex_f *freg_object)
 {
-  bool reach_delimiter = false;
-  size_t pattern_char = 0;
-  size_t stripped_pattern_c = 0;
-  /*  char *stripped_pattern = NULL;*/
-  char delimiter;
+  size_t token_ind = 0;
+  size_t npattern_tos = 0;
+  size_t mod_pattern_len = (non_mod_pattern_len = strnlen(pattern, FINDF_MAX_PATTERN_LEN));
+  char *new_pattern = NULL;
 
-  /*  if ((stripped_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
-    intern_errormesg("Malloc");
-    return NULL;
-    }*/
-  memset(stripped_pattern, 0, FINDF_MAX_PATTERN_LEN);
-  /* Fetch the operation. */
-  switch(intern_pattern[0]){
-  case 'm':
-    freg_object->fre_op_match = true;
-    pattern_char++;
-    break;
-  case 's':
-    freg_object->fre_op_substitute = true;
-    pattern_char++;
-    break;
-  case 't':
-    if (intern_pattern[1] == 'r'){
-      freg_object->fre_op_transliterate = true;
-      pattern_char = 2;
-      break;
-    }
-    else {
-      intern_errormesg("Unknown operation in pattern");
-      goto cleanup;
-    }
-  default:
-    /* 
-     * Check if the current character is a punctuation mark.
-     * If yes, we assume a match operation and use this mark as
-     * the pattern's delimiter.
-     */
-    if (ispunct(intern_pattern[pattern_char])){
-      freg_object->fre_op_match = true;
-      break;
-    }
-    else { /* Error */
-      intern_errormesg("Unknow operation in pattern");
-      goto cleanup;
-    }
+
+
+#ifndef PPTOKEN
+# define PPTOKEN pattern[token_ind]
+#endif
+
+  if ((new_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
+    intern_errormesg("Calloc");
+    return ERROR;
   }
-
-  /* Set the delimiter. */
-  delimiter = intern_pattern[pattern_char];
-  pattern_char++;
-
-  while(intern_pattern[pattern_char] != '\0'){
-    if (reach_delimiter == false){
-      if (intern_pattern[pattern_char] == delimiter){
-	stripped_pattern[stripped_pattern_c] = '\0';
-	pattern_char++;
-	reach_delimiter = true;
-	
-      }
-      else{
-	stripped_pattern[stripped_pattern_c] = intern_pattern[pattern_char];
-	stripped_pattern_c++;
-	pattern_char++;
-      }
-    }
-    else {
-      switch(intern_pattern[pattern_char]){
-      case 'm':
-	freg_object->fre_modif_boleol = true;
-	break;
-      case 's':
-	freg_object->fre_modif_newline = true;
-	break;
-      case 'i':
-	freg_object->fre_modif_icase = true;
-	break;
-      case 'g':
-	freg_object->fre_modif_global = true;
-	break;
-      case 'x':
-	freg_object->fre_modif_ext = true;
-	break;
-      default:
-	intern_errormesg("Syntax error, Unknown modifier in pattern");
-	goto cleanup;
-      }
-      pattern_char++;
-    }  
-	  
-  } 
-
-  /* Make sure we found the second delimiter. */
-  if (reach_delimiter == true){
-    /* Return the stripped off pattern. */
-    return stripped_pattern;
-  }
-  else {
-    /* Or an error ! */
-    intern_errormesg("Syntax error: Second pattern delimiter not found.");
-    goto cleanup;
-  }
-	
   
- cleanup:
-  if (stripped_pattern){
-    free(stripped_pattern);
-    stripped_pattern = NULL;
-  }
-  return NULL;
-}
-      
-      
-/* 
- * Parse the Perl-like regex pattern.
- * Modify it into a fully conformant POSIX
- * extended regular expression.
- */
+  /* 
+   * Loop over each characters of pattern,
+   * convert unsupported Perl-like escape sequence
+   * into POSIX compatible constructs.
+   */
+  while (1){
+    if (PPTOKEN == '\0'){
+      intern__findf__push('\0', new_pattern, &npattern_tos);
+      break;
+    }
+    else if (PPTOKEN == '\\'){
+      /* Get next token and verify the sequence. */
+      token_ind++;
+      if (intern__findf__validate_esq_sequence(PPTOKEN, new_pattern,
+					       &pattern_tos, &mod_pattern_len) != RF_OPSUCC){
+	intern_errormesg("Failed to validate an escape sequence");
+	goto failure;
+      }
+    }
 
-findf_regex_f** intern__findf__parse_patterns(char **patterns,
-					      size_t numof_patterns)
+    /* If pattern is an extended pattern, remove spaces and comments. */
+    else if (freg_object->fre_modif_ext == true) {
+      ;
+    }
+
+    /* Valid token, add it to new_pattern. */
+    else {
+      ;
+    }
+    
+  } /* while(1) */
+      
+
+
+    return RF_OPSUCC;
+
+ failure:
+    if (new_pattern != NULL){
+      free(new_pattern);
+      new_pattern = NULL;
+    }
+    return ERROR;
+#undef PPTOKEN
+}
+
+
+/* Parse a match-style pattern. */  
+int intern__findf__parse_match(char *pattern,
+			       size_t token_ind,
+			       findf_regex_f *freg_object)
+{
+  size_t freg_object_tos = 0;
+  size_t modifiers_tos = 0;
+  size_t numof_seen_delimiter = 1;
+  char modifiers[FINDF_MAX_PATTERN_LEN];
+  
+#ifndef MTOKEN
+# define MTOKEN pattern[token_ind]
+#endif
+
+  memset(modifiers, 0, FINDF_MAX_PATTERN_LEN);
+  while (1) {
+    /* 
+     * Check if we reach the end of pattern,
+     * verify we've encoutered the required numbers
+     * of pattern delimiters.
+     */
+    if (MTOKEN == '\0'){
+      if (numof_seen_delimiter == FRE_MATCH_EXPECT_DELIMITER){
+	/* NULL terminate the strings. */
+	intern__findf__push('\0', freg_object->pat_storage->pattern1, &freg_object_tos);
+	intern__findf__push('\0', modifiers, &modifiers_tos);
+	break;
+      }
+      else {
+	/* Error, we should have the exact number of expected delimiters. */
+	pthread_mutex_lock(&stderr_mutex);
+	fprintf(stderr, "ERROR: Expected exactly [%d] delimiters;\nSeen [%zu] delimiters\n\n",
+		FRE_MATCH_EXPECT_DELIMITER, numof_seen_delimiter);
+	pthread_mutex_unlock(&stderr_mutex);
+	return ERROR;
+      }
+    }
+    /* 
+     * Check if MTOKEN is the pattern's delimiter 
+     * and increment the counter. 
+     */
+    if (MTOKEN == freg_object->delimiter){
+      numof_seen_delimiter++;
+      token_ind++;
+      continue;
+    }
+    else {
+      /* 
+       * If the expected number of delimiters is not reach,
+       * MTOKEN is part of the regex pattern.
+       */
+      if (numof_seen_delimiter < FRE_MATCH_EXPECT_DELIMITER){
+	intern__findf__push(MTOKEN, freg_object->pat_storage->pattern1, &freg_object_tos);
+      }
+      /* Else it must be a modifier. */
+      else if (numof_seen_delimiter == FRE_MATCH_EXPECT_DELIMITER){
+	intern__findf__push(MTOKEN, modifiers, &modifiers_tos);
+      }
+      else { /* This should never happen. */
+	intern_errormesg("numof_seen_delimiter does not match expectations.");
+	return ERROR;
+      }
+    }
+    token_ind++;
+  } /* while (1) */
+
+  /* Make sure all gathered modifiers are supported. */
+  intern__findf__validate_modif(modifiers);
+  
+
+  return RF_OPSUCC;
+
+#undef MTOKEN
+} /* intern__findf__parse_match() */
+
+
+/* Parse a substitution-style pattern. */
+int intern__findf__parse_substitute(char *pattern,
+				    size_t token_ind,
+				    findf_regex_f *freg_object)
+{
+  size_t pattern_tos = 0;
+  size_t substitute_tos = 0;
+  size_t modifiers_tos = 0;
+  size_t numof_seen_delimiter = 1;
+  char modifiers[FINDF_MAX_PATTERN_LEN];
+  
+#ifndef STOKEN
+# define STOKEN pattern[token_ind]
+#endif
+
+  memset(modifiers, 0, FINDF_MAX_PATTERN_LEN);
+
+  
+  while(1){
+    /* 
+     * Make sure we've seen all required delimiters
+     * when the current token is a NULL byte.
+     */
+    if (STOKEN == '\0') {
+      if (numof_seen_delimiter == FRE_SUBST_EXPECT_DELIMITER){
+	/* NULL terminate all strings. */
+	intern__findf__push('\0', freg_object->pat_storage->pattern1, &pattern_tos);
+	intern__findf__push('\0', freg_object->pat_storage->pattern2, &substitute_tos);
+	intern__findf__push('\0', modifiers, &modifiers_tos);
+	break;
+      }
+      else {
+	/* Error, we should have the exact number of expected delimiters. */
+	pthread_mutex_lock(&stderr_mutex);
+	fprintf(stderr, "ERROR: Expected exactly [%d] delimiters;\nSeen [%zu] delimiters\n\n",
+		FRE_MATCH_EXPECT_DELIMITER, numof_seen_delimiter);
+	pthread_mutex_unlock(&stderr_mutex);
+	return ERROR;
+      }
+    }
+    else if (STOKEN == freg_object->delimiter){
+      numof_seen_delimiter++;
+    }
+    else {
+      /* 
+       * If token is in between 1st and 2nd delimiter push the
+       * token in pattern1, (pattern to match)
+       * if token is in between 2nd and 3rd delimiter push then
+       * token in pattern2, (pattern to substitute match with)
+       * else push the token in modifiers.
+       */
+      if (numof_seen_delimiter < (FRE_SUBST_EXPECT_DELIMITER - 1)) {
+	intern__findf__push(STOKEN, freg_object->pat_storage->pattern1, &pattern_tos);
+      }
+      else if (numof_seen_delimiter < FRE_SUBST_EXPECT_DELIMITER){
+	intern__findf__push(STOKEN, freg_object->pat_storage->pattern2, &substitute_tos);
+      }
+      else {
+	intern__findf__push(STOKEN, modifiers, &modifiers_tos);
+      }
+    }
+    ++token_ind;
+  } /* while(1) */
+
+  /* We must validate the pattern's modifier(s). */
+  intern__findf__validate_modif(modifiers);
+  
+  return RF_OPSUCC;
+#undef STOKEN
+
+} /* intern__findf__parse_substitute() */
+
+
+/* Initialize the regex parsing operation. */
+findf_regex_f** intern__findf__init_parser(char **patterns,
+					   size_t numof_patterns)
 {
   size_t i = 0;
-  size_t patterns_c = 0;                                 /* Current pattern we're working on. */
-  size_t pattern_char = 0;                               /* Used to loop through each characters of each patterns. */
-  size_t tmp_pattern_c = 0;                              /* Used to build the pattern to compile, a char at a time. */
-  size_t tmp_pattern_len = 0;                            /* Lenght of the unmodified pattern, stripped from op/modif flags. */
-  size_t intern_pattern_len = 0;                         /* Lenght of intern_pattern. */
-  bool   reach_delimiter = false;                        /* True when we reach the 2nd delimiter of an expression. */
-  char   *intern_pattern = NULL;                         /* We copy each patterns in this array. */
-  char   *tmp_pattern = NULL;                            /* The pattern without op/modif flags, to be compiled. */
-  findf_regex_f **reg_array = NULL;                      /* The array of compiled pattern to return to our caller. */
+  size_t patterns_c = 0;                /* Current pattern. */
+  size_t token_ind = 0;                 /* Index of the current token. */
+  findf_regex_f **reg_array = NULL;     /* For the findf_param_f->reg_array field of findf_re's parameter. */
 
-  /* findf_re() verified the numof_patterns already. Allocate memory.*/
+  findf_regex_f *freg_object = NULL;    /* Convinience, not needed. */
+
+
+  /* Allocate memory for our internal array of findf_regex_f objects. */
   if ((reg_array = malloc(numof_patterns * sizeof(findf_regex_f*))) == NULL){
-    intern_errormesg("Malloc");
+    intern_errormesg("Malloc failure");
     return NULL;
   }
   for (i = 0; i < numof_patterns; i++){
     if ((reg_array[i] = intern__findf__init_regex()) == NULL){
-      intern_errormesg("intern__findf__init_regex");
-      goto cleanup;
+      intern_errormesg("Intern__findf__init_regex failure");
+      goto failure;
     }
   }
-  if ((intern_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
-    intern_errormesg("Calloc");
-    goto cleanup;
-  }
-  if ((tmp_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
-    intern_errormesg("Calloc");
-    goto cleanup;
-  }
 
-  /* Loop over each of caller's patterns.  */
-  for (patterns_c = 0; patterns_c < numof_patterns; patterns_c++){
-    if (SU_strcpy(intern_pattern, patterns[patterns_c], FINDF_MAX_PATTERN_LEN) == NULL){
-      intern_errormesg("SU_strcpy failure");
-      goto cleanup;
-    }
-    /* Strip the pattern of all its operation, delimiter and modifier characters. */
-    if (intern__findf__strip_pattern(intern_pattern, tmp_pattern, reg_array[patterns_c]) == NULL){
-      intern_errormesg("Could not strip pattern");
-      goto cleanup;
-    }
-
-    tmp_pattern_len =  strlen(intern_pattern);
-    intern_pattern_len = strlen(intern_pattern);
-    /* 
-     * Loop over each characters of the pattern.
-     * Look for escape sequences, comments, spaces etc..
-     */
-    for (pattern_char = 0, tmp_pattern_c = 0; pattern_char <= intern_pattern_len ; pattern_char++){
-      /* 
-       * NULL terminate the modified pattern when 
-       * a NULL byte is encountered in intern_pattern.
-       */
-      if (intern_pattern[pattern_char] == '\0') {
-	tmp_pattern[tmp_pattern_c] = '\0';
-	break;
-      }
-      /* Look for escape sequences not supported by POSIX. */
-      if (intern_pattern[pattern_char] == '\\'){
-	switch(intern_pattern[pattern_char + 1]){
-	case 'd':
-	  /* Make sure the modified pattern stays within POSIX's lenght limits. */
-	  if ((tmp_pattern_len + 3) >= FINDF_MAX_PATTERN_LEN){
-	    /* 
-	     * +3:   '\d' = 2;
-	     *       '[0-9]= 5;
-	     */ 
-	    intern_errormesg("Modified pattern breaking POSIX's lenght limit");
-	    goto cleanup;
-	  }
-	  for (i = 0; FRE_DIGIT_RANGE[i] != '\0'; i++, tmp_pattern_c++)
-	    tmp_pattern[tmp_pattern_c] = FRE_DIGIT_RANGE[i];
-	  /* Adjust the lenght. */
-	  tmp_pattern_len += 3;
-	  break;
-
-	case 'D':
-	  /* Make sure the modified pattern stays within POSIX's lenght limits. */
-	  if ((tmp_pattern_len + 4) >= FINDF_MAX_PATTERN_LEN){
-	    /* 
-	     * +4:    '\D' = 2;
-	     *        '[^0-9] = 6;
-	     */
-	    intern_errormesg("Modified pattern breaking POSIX's lenght limit");
-	    goto cleanup;
-	  }
-	  for (i = 0; FRE_NOT_DIGIT_RANGE[i] != '\0'; i++, tmp_pattern_c++)
-	    tmp_pattern[tmp_pattern_c] = FRE_NOT_DIGIT_RANGE[i];
-	  /* Adjust the lenght. */
-	  tmp_pattern_len += 4;
-	  break;
-
-	  /* Other escape sequences go here ! */
-
-	default:
-	  /* 
-	   * Ignore escape sequences not listed above, 
-	   * either they are invalid or already supported by POSIX.
-	   */
-	  break;
-	}
-      } /* If (... == '\\') */
-
-      /* 
-       * Check if the '/x' modifier was used,
-       * if so, ignore any spaces of any kinds and
-       * skip any lines begining by a litteral '#'.
-       */
-      else if (reg_array[patterns_c]->fre_modif_ext == true){
-	if (isspace(intern_pattern[pattern_char])){
-	  continue;
-	}
-	else if (intern_pattern[pattern_char] == '#') {
-	  for (; intern_pattern[pattern_char] != '\0'; pattern_char++){
-	    /* 
-	     * The compiler will very likely optimize-merge this loop 
-	     * tecnicaly it's the same as the outer loop. 
-	     */
-	    __asm__(""); 
-	    if (intern_pattern[pattern_char] == '\n')
-	      break;
-	    else
-	      continue;
-	  }
-	}
-      }
-      else {
-	tmp_pattern[tmp_pattern_c++] = intern_pattern[pattern_char];
-      }
-      
-    }
-    /* Ready to compile the pattern. */
-    if (regcomp(reg_array[patterns_c]->pattern,
-		tmp_pattern,
-		(reg_array[patterns_c]->fre_modif_newline == true) ? 0 : REG_NEWLINE |
-		(reg_array[patterns_c]->fre_modif_icase == true) ? REG_ICASE : 0 |
-		REG_EXTENDED |
-		REG_NOSUB) != 0) {
-      intern_errormesg("Regcomp failed to compile the pattern.");
-      goto cleanup;
-    }
-    
-    /* Plugin the appropriate operation now. */
-    if (reg_array[patterns_c]->fre_op_match == true)
-      reg_array[patterns_c]->operation = dummy;
-    else if (reg_array[patterns_c]->fre_op_substitute == true)
-      reg_array[patterns_c]->operation = dummy;
-    else if (reg_array[patterns_c]->fre_op_transliterate == true)
-      reg_array[patterns_c]->operation = dummy;
-    else {
-      intern_errormesg("Unknown operation in pattern.");
-      goto cleanup;
-    }
-    
-    /* Get next pattern. */
-    continue;
-  } /* For patterns_c = 0... */
 
   /* 
-   * When the previous loop terminate, 
-   * the array of compiled pattern is ready to be used. 
-   *
-   * Cleanup behind ourself. 
+   * Go over each patterns.
+   * Begin by fetching the current pattern's operation. 
    */
-  if(tmp_pattern){
-    free(tmp_pattern);
-    tmp_pattern = NULL;
-  }
-  if (intern_pattern){
-    free(intern_pattern);
-    intern_pattern = NULL;
-  }
+  for (patterns_c = 0; patterns_c < numof_patterns; patterns_c++){
+    token_ind = 0;
+    freg_object = reg_array[patterns_c];
+
+#ifndef ITOKEN
+# define ITOKEN patterns[patterns_c][token_ind]
+#endif
+
+    /* Fetch the operation */
+    switch(ITOKEN){
+    case 'm': /* Match m/, / */
+      freg_object->fre_op_match = true;
+      /* Adjust token */
+      token_ind++;
+      break;
+    case 's': /* Substitution s/ */
+      freg_object->fre_op_substitute = true;
+      token_ind++;
+      break;
+    case 't': /* Transliteration tr/ */
+      if (patterns[patterns_c][token_ind + 1] == 'r'){
+	freg_object->fre_op_transliterate = true;
+	token_ind += 2;
+	break;
+      }
+      else {
+	intern_errormesg("Unkown operation in pattern");
+	goto failure;
+      }
+    default:
+      if (ispunct(ITOKEN)){
+	/* Assume a match operation. */
+	freg_object->fre_op_match = true;
+	break;
+      }
+      intern_errormesg("Unknown operation in pattern");
+      goto failure;
+    }  
+
+    /* 
+     * Make sure the current token is a punctuation mark,
+     * if so, this token is the pattern's delimiter.
+     */
+    if (ispunct(ITOKEN)){
+      freg_object->delimiter = ITOKEN;
+      ++token_ind;
+    }
+    else {
+      /* No delimiter, syntax error. */
+      intern_errormesg("No delimiter found in pattern");
+      goto failure;
+    }
+     
+    /* Parse the remaining of the pattern. */
+    if (freg_object->fre_op_match == true){
+      if (intern__findf__parse_match(patterns[patterns_c],
+				     token_ind,
+				     reg_array[patterns_c]) != RF_OPSUCC){
+	intern_errormesg("Intern__findf__parse_match failure");
+	goto failure;
+      }
+    }
+    else if (freg_object->fre_op_substitute == true){
+      if (intern__findf__parse_substitute(patterns[patterns_c],
+					  token_ind,
+					  reg_array[patterns_c]) != RF_OPSUCC){
+	intern_errormesg("Intern__findf__parse_substitute");
+	goto failure;
+      }
+    }
+    else if (freg_object->fre_op_transliterate == true){
+      if (intern__findf__parse_substitute(patterns[patterns_c],
+					  token_ind,
+					  reg_array[patterns_c]) != RF_OPSUCC){
+	intern_errormesg("Intern__findf__parse_substitute");
+	goto failure;
+      }
+    }
+    else { 
+      intern_errormesg("Unknown operation in pattern");
+      goto failure;
+    }
+
+    /* 
+     * Convert the stripped off Perl-like pattern into
+     * a fully POSIX ERE conformant pattern.
+     */
+
+    
+  } /* for(patterns_c = 0...(each patterns)) */
+  
+
 
   return reg_array;
-  
-  
- cleanup:
-  if (reg_array){
+
+ failure:
+  if (freg_object != NULL)
+    freg_object = NULL;
+  if (reg_array != NULL){
     for (i = 0; i < numof_patterns; i++){
-      if (reg_array[i]){
+      if(reg_array[i] != NULL) {
 	intern__findf__free_regex(reg_array[i]);
 	reg_array[i] = NULL;
       }
-
     }
     free(reg_array);
+    reg_array = NULL;
   }
-  if (intern_pattern)
-    free(intern_pattern);
-  
-  if (tmp_pattern)
-    free(tmp_pattern);
-  
   return NULL;
+#undef ITOKEN
 }
+
+
