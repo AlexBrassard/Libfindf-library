@@ -97,10 +97,12 @@ typedef struct fregex{
   bool             fre_op_match;             /* True when operation is match. */
   bool             fre_op_substitute;        /* True when operation is substitute. */
   bool             fre_op_transliterate;     /* True when operation is transliterate. */
+  bool             fre_p1_compiled;          /* True when ->pattern[0] has been regcompiled. */
+  bool             fre_p2_compiled;          /* True when ->pattern[1] has been regcompiled. */
   char             delimiter;                /* The delimiter used by the pattern. */
   int              (*operation)(struct fregex*); /* A pointer to the operation to execute on the regex. */
   int              fre_op_return_val;        /* operation's return value. */
-  regex_t          *pattern;                 /* A compiled regex pattern via a call to regcomp(). */
+  regex_t          **pattern;                /* A compiled regex pattern via a call to regcomp(). */
   findf_opstore_f  *pat_storage;             /* Type of pattern storage used, depending on the operation. */
   
 } findf_regex_f;

@@ -181,9 +181,18 @@ int intern__findf__validate_esc_seq(char token,
 				    char *buffer,
 				    size_t *buf_ind,
 				    size_t *buf_len);
+/* Validate pattern's modifier(s). */
+int intern__findf__validate_modif(char *modifiers,
+				  findf_regex_f *freg_object);
+/* Skip extended pattern's comments. */
+void intern__findf__skip_comments(char *pattern,
+				  size_t *cur_ind,
+				  size_t *pattern_len);
 /* Convert Perl-like syntax into POSIX ere syntax. */
-char* intern__findf__perl_to_posix(char *pattern,
-				   findf_regex_f *freg_object);
+int intern__findf__perl_to_posix(char *pattern,
+				 findf_regex_f *freg_object);
+/* Compile a POSIX regex pattern. */
+int intern__findf__compile_pattern(findf_regex_f *freg_object);
 
 
 /* Fre pattern operations related routines. */

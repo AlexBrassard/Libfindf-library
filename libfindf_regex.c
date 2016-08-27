@@ -23,14 +23,22 @@
 findf_regex_f* intern__findf__init_regex(void)
 {
   findf_regex_f *to_init = NULL;
+  size_t i = 0;
 
   if ((to_init = malloc(sizeof(findf_regex_f))) == NULL){
     intern_errormesg("Malloc");
     return NULL;
   }
-  if ((to_init->pattern = malloc(sizeof(regex_t))) == NULL){
+  /* We need exactly 2 regex_t* objects. */
+  if ((to_init->pattern = malloc(2 * sizeof(regex_t*))) == NULL){
     intern_errormesg("Malloc");
     goto cleanup;
+  }
+  for (i = 0; i < 2; i++){
+    if ((to_init->pattern[i] = malloc(sizeof(regex_t))) == NULL){
+      intern_errormesg("Malloc");
+      goto cleanup;
+    }
   }
   if ((to_init->pat_storage = malloc(sizeof(findf_opstore_f))) == NULL){
     intern_errormesg("Malloc");
@@ -54,6 +62,8 @@ findf_regex_f* intern__findf__init_regex(void)
   to_init->fre_op_match = false;
   to_init->fre_op_substitute = false;
   to_init->fre_op_transliterate = false;
+  to_init->fre_p1_compiled = false;
+  to_init->fre_p2_compiled = false;
 
 
   return to_init;
@@ -62,8 +72,12 @@ findf_regex_f* intern__findf__init_regex(void)
  cleanup:
   if (to_init){
     if (to_init->pattern){
+      for (i = 0; i < 2; i++){
+	free(to_init->pattern[i]);
+	to_init->pattern[i] = NULL;
+      }
       free(to_init->pattern);
-      to_init->pattern = NULL;
+      to_init->pattern = NULL;    
     }
     if (to_init->pat_storage != NULL){
       if (to_init->pat_storage->pattern1 != NULL) {
@@ -86,15 +100,27 @@ findf_regex_f* intern__findf__init_regex(void)
 /* Deallocate memory of a single findf_regex_f object. */
 int intern__findf__free_regex(findf_regex_f* to_free)
 {
+  size_t i = 0;
+  
   /* Set errno if the findf_regex_f pointer is NULL but succeed anyway. */
   if (to_free == NULL){
     errno = ENODATA;
     return RF_OPSUCC;
   }
-  //  regfree(to_free->pattern);
-  if (to_free->pattern != NULL)
+  if (to_free->pattern != NULL){
+    if (to_free->fre_p1_compiled == true){
+      regfree(to_free->pattern[0]);
+    }
+    if (to_free->fre_p2_compiled == true) {
+      regfree(to_free->pattern[1]);
+    }
+    for (i = 0; i < 2; i++){
+      free(to_free->pattern[i]);
+      to_free->pattern[i] = NULL;
+    }
     free(to_free->pattern);
-  to_free->pattern = NULL;
+    to_free->pattern = NULL;
+  }
   if (to_free->pat_storage != NULL){
     if (to_free->pat_storage->pattern1 != NULL){
       free(to_free->pat_storage->pattern1);
@@ -147,50 +173,74 @@ int intern__findf__free_regarray(findf_regex_f** to_free,
     ++(*tos);					    \
   } while (0);
 
-/* MACRO. Check validity of the pattern's modifier(s). */
-#ifndef intern__findf__validate_modif
-# define intern__findf__validate_modif(modifiers) int i = 0;		\
-  while(modifiers[i] != '\0') {						\
-    switch(modifiers[i]) {						\
-    case 'm':								\
-      freg_object->fre_modif_boleol = true;				\
-      break;								\
-    case 's':								\
-      freg_object->fre_modif_newline = true;				\
-      break;								\
-    case 'i':								\
-      freg_object->fre_modif_icase = true;				\
-      break;								\
-    case 'g':								\
-      freg_object->fre_modif_global = true;				\
-      break;								\
-    case 'x':								\
-      freg_object->fre_modif_ext = true;				\
-      break;								\
-    default:								\
-      intern_errormesg("Unknown modifier in pattern");			\
-      return ERROR;							\
-    }									\
-    i++;								\
-  }
-#endif
 
-/* verify how you call it. */
+/* Verify the validity of pattern modifiers. */
+int intern__findf__validate_modif(char *modifiers,
+				  findf_regex_f *freg_object)
+{
+  size_t i = 0;								
+  while(modifiers[i] != '\0') {						
+    switch(modifiers[i]) {						
+    case 'm':								
+      freg_object->fre_modif_boleol = true;				
+      break;								
+    case 's':								
+      freg_object->fre_modif_newline = true;				
+      break;								
+    case 'i':								
+      freg_object->fre_modif_icase = true;				
+      break;								
+    case 'g':								
+      freg_object->fre_modif_global = true;				
+      break;								
+    case 'x':								
+      freg_object->fre_modif_ext = true;				
+      break;								
+    default:								
+      intern_errormesg("Unknown modifier in pattern");			
+      return ERROR;							
+    }									
+    i++;								
+  }
+  return RF_OPSUCC;
+}
+
+
+/* Skips over comment lines. */
+void intern__findf__skip_comments(char *pattern,
+				  size_t *cur_ind,
+				  size_t *pattern_len)
+{									
+  int i = 0;								
+  while (pattern[(*cur_ind)] != '\n' && pattern[(*cur_ind)] != '\0') { 
+    (*cur_ind)++;							
+    i++;								
+  }									
+  if (i > 0){								
+    /* Substract the amount of tokens we removed from the original lenght. */ 
+    (*pattern_len) -= i;						
+  }									
+}
+
+
+
+/* Check for escape sequences not supported by POSIX. */
 int intern__findf__validate_esc_seq(char token,
 				    char *buffer,
 				    size_t *buf_ind,
 				    size_t *buf_len)
 {
-
+  
   size_t i = 0;								
 
   switch(token){							
+    
   case 'd':								
     /*
      * + 3:    '\d'    = 2
      *         '[0-9]' = 5
      */
-    if ((buffer_len + 3) >= FINDF_MAX_PATTERN_LEN) {
+    if (((*buf_len) + 3) >= FINDF_MAX_PATTERN_LEN) {
       pthread_mutex_lock(&stderr_mutex);
       fprintf(stderr, "Modified pattern breaks POSIX pattern's lenght limit (%d)\nChanging '\\d' into '[0-9]\n\n",
 	      FINDF_MAX_PATTERN_LEN);
@@ -200,14 +250,15 @@ int intern__findf__validate_esc_seq(char token,
     while (FRE_DIGIT_RANGE[i] != '\0'){
       buffer[(*buf_ind)++] = FRE_DIGIT_RANGE[i++];
     }			
-    *buf_len += 3;
+    (*buf_len) += 3;
     break;
+
   case 'D':
     /* 
      * + 4:    '\D'     = 2
      *         '[^0-9]' = 6
      */
-    if ((buffer_len + 4) >= FINDF_MAX_PATTERN_LEN){
+    if (((*buf_len) + 4) >= FINDF_MAX_PATTERN_LEN){
       pthread_mutex_lock(&stderr_mutex);
       fprintf(stderr, "Modified pattern breaks POSIX pattern's lenght limit (%d)\nChanging '\\D' into '[^0-9]'\n\n",
 	      FINDF_MAX_PATTERN_LEN);
@@ -217,29 +268,37 @@ int intern__findf__validate_esc_seq(char token,
     while(FRE_NOT_DIGIT_RANGE[i] != '\0'){
       buffer[(*buf_ind)++] = FRE_NOT_DIGIT_RANGE[i++];
     }
-    *buf_len += 4;
-    break
+    (*buf_len) += 4;
+    break;
   default:
-      /* Assume supported escape sequence. */
-      break;
+    /* Assume supported escape sequence. */
+    break;
   }
+
+  return RF_OPSUCC;
 } /* intern__findf__validate_esc_seq() */
 
-		     
-char *intern__findf__perl_to_posix(char *pattern,
-				   findf_regex_f *freg_object)
+
+
+
+/* Convert Perl-like regex pattern into POSIX conformant regex pattern. */
+int intern__findf__perl_to_posix(char *pattern,
+				 findf_regex_f *freg_object)
 {
-  size_t token_ind = 0;
-  size_t npattern_tos = 0;
-  size_t mod_pattern_len = (non_mod_pattern_len = strnlen(pattern, FINDF_MAX_PATTERN_LEN));
+  bool pattern2_converted = false;          /* True when the 2nd pattern of a substitution has been converted. */
+  size_t token_ind = 0;                     /* Index of the current token we're working on. */
+  size_t npattern_tos = 0;                  /* The converted pattern tos. */
+  size_t non_mod_pattern_len = 0;           /* Lenght of the unmodifier Perl-like regex pattern. */
+  size_t mod_pattern_len = 0;               /* Lenght of the converted POSIX regex pattern. */
   char *new_pattern = NULL;
 
-
-
+  mod_pattern_len = (non_mod_pattern_len = strnlen(pattern, FINDF_MAX_PATTERN_LEN));
+  
 #ifndef PPTOKEN
 # define PPTOKEN pattern[token_ind]
 #endif
 
+  /* Why not a local variable ? */
   if ((new_pattern = calloc(FINDF_MAX_PATTERN_LEN, sizeof(char))) == NULL){
     intern_errormesg("Calloc");
     return ERROR;
@@ -258,8 +317,8 @@ char *intern__findf__perl_to_posix(char *pattern,
     else if (PPTOKEN == '\\'){
       /* Get next token and verify the sequence. */
       token_ind++;
-      if (intern__findf__validate_esq_sequence(PPTOKEN, new_pattern,
-					       &pattern_tos, &mod_pattern_len) != RF_OPSUCC){
+      if (intern__findf__validate_esc_seq(PPTOKEN, new_pattern,
+					  &npattern_tos, &mod_pattern_len) != RF_OPSUCC){
 	intern_errormesg("Failed to validate an escape sequence");
 	goto failure;
       }
@@ -267,26 +326,45 @@ char *intern__findf__perl_to_posix(char *pattern,
 
     /* If pattern is an extended pattern, remove spaces and comments. */
     else if (freg_object->fre_modif_ext == true) {
-      ;
+      if (isspace(PPTOKEN)) {
+	; /* Get next token. */
+      }
+      else if (PPTOKEN == '#') {
+	intern__findf__skip_comments(pattern, &token_ind, &mod_pattern_len);
+      }
+      /* It must be a valid character. */
+      else {
+	intern__findf__push(PPTOKEN, new_pattern, &npattern_tos);
+      }
     }
 
+    /* More filters will go here. */
+    
     /* Valid token, add it to new_pattern. */
     else {
-      ;
+      intern__findf__push(PPTOKEN, new_pattern, &npattern_tos);
     }
-    
+    token_ind++;
   } /* while(1) */
       
 
-
-    return RF_OPSUCC;
-
+  /* Copy the new pattern into the caller's given pattern. */
+  if(SU_strcpy(pattern, new_pattern, FINDF_MAX_PATTERN_LEN) == NULL){
+    intern_errormesg("SU_strcpy");
+    goto failure;
+  }
+  /* Free new_pattern. */
+  free(new_pattern);
+  new_pattern = NULL;
+  
+  return RF_OPSUCC;
+  
  failure:
-    if (new_pattern != NULL){
-      free(new_pattern);
-      new_pattern = NULL;
-    }
-    return ERROR;
+  if (new_pattern != NULL){
+    free(new_pattern);
+    new_pattern = NULL;
+  }
+  return ERROR;
 #undef PPTOKEN
 }
 
@@ -358,7 +436,10 @@ int intern__findf__parse_match(char *pattern,
   } /* while (1) */
 
   /* Make sure all gathered modifiers are supported. */
-  intern__findf__validate_modif(modifiers);
+  if (intern__findf__validate_modif(modifiers, freg_object) != RF_OPSUCC){
+    intern_errormesg("Intern__findf__validate_modif");
+    return ERROR;
+  }
   
 
   return RF_OPSUCC;
@@ -414,8 +495,8 @@ int intern__findf__parse_substitute(char *pattern,
       /* 
        * If token is in between 1st and 2nd delimiter push the
        * token in pattern1, (pattern to match)
-       * if token is in between 2nd and 3rd delimiter push then
-       * token in pattern2, (pattern to substitute match with)
+       * if token is in between 2nd and 3rd delimiter push the
+       * token in pattern2, (pattern to substitute matches with)
        * else push the token in modifiers.
        */
       if (numof_seen_delimiter < (FRE_SUBST_EXPECT_DELIMITER - 1)) {
@@ -432,13 +513,48 @@ int intern__findf__parse_substitute(char *pattern,
   } /* while(1) */
 
   /* We must validate the pattern's modifier(s). */
-  intern__findf__validate_modif(modifiers);
+  if(intern__findf__validate_modif(modifiers, freg_object) != RF_OPSUCC){
+    intern_errormesg("Intern__findf__validate_modif");
+    return ERROR;
+  }
+
   
   return RF_OPSUCC;
 #undef STOKEN
 
 } /* intern__findf__parse_substitute() */
 
+
+/* Compile a regex pattern. */
+int intern__findf__compile_pattern(findf_regex_f *freg_object)
+{
+  /* No matter the operation, always compile the first pattern. */
+  if (regcomp(freg_object->pattern[0],
+	      freg_object->pat_storage->pattern1,
+	      (freg_object->fre_modif_icase == true) ? REG_ICASE : 0 |
+	      (freg_object->fre_modif_newline == true) ? 0 : REG_NEWLINE |
+	      REG_EXTENDED |
+	      REG_NOSUB) != 0) {
+    intern_errormesg("Regcomp");
+    return ERROR;
+  }
+  freg_object->fre_p1_compiled = true; /* To ease freeing */
+  /* If it's a substitution, compile the second pattern as well. */
+  if (freg_object->fre_op_substitute == true){
+    if (regcomp(freg_object->pattern[1],
+		freg_object->pat_storage->pattern2,
+		(freg_object->fre_modif_icase == true) ? REG_ICASE : 0 |
+		(freg_object->fre_modif_newline == true) ? 0 : REG_NEWLINE |
+		REG_EXTENDED |
+		REG_NOSUB) != 0) {
+      intern_errormesg("Regcomp");
+      return ERROR;
+    }
+    freg_object->fre_p2_compiled = true; /* To ease freeing. */
+  }
+
+  return RF_OPSUCC;
+}
 
 /* Initialize the regex parsing operation. */
 findf_regex_f** intern__findf__init_parser(char **patterns,
@@ -448,7 +564,6 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
   size_t patterns_c = 0;                /* Current pattern. */
   size_t token_ind = 0;                 /* Index of the current token. */
   findf_regex_f **reg_array = NULL;     /* For the findf_param_f->reg_array field of findf_re's parameter. */
-
   findf_regex_f *freg_object = NULL;    /* Convinience, not needed. */
 
 
@@ -463,7 +578,6 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
       goto failure;
     }
   }
-
 
   /* 
    * Go over each patterns.
@@ -531,15 +645,8 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 	goto failure;
       }
     }
-    else if (freg_object->fre_op_substitute == true){
-      if (intern__findf__parse_substitute(patterns[patterns_c],
-					  token_ind,
-					  reg_array[patterns_c]) != RF_OPSUCC){
-	intern_errormesg("Intern__findf__parse_substitute");
-	goto failure;
-      }
-    }
-    else if (freg_object->fre_op_transliterate == true){
+    else if (freg_object->fre_op_substitute == true
+	     || freg_object->fre_op_transliterate == true){
       if (intern__findf__parse_substitute(patterns[patterns_c],
 					  token_ind,
 					  reg_array[patterns_c]) != RF_OPSUCC){
@@ -554,9 +661,32 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 
     /* 
      * Convert the stripped off Perl-like pattern into
-     * a fully POSIX ERE conformant pattern.
+     * a fully POSIX ERE conformant pattern only if it's not
+     * for a transliteration operation.
      */
-
+    if (freg_object->fre_op_transliterate == false){
+      if (intern__findf__perl_to_posix(freg_object->pat_storage->pattern1,
+				       freg_object) != RF_OPSUCC){
+	intern_errormesg("Intern__findf__perl_to_posix");
+	goto failure;
+      }
+      /* 
+       * If the object's operation is a substitution,
+       * send the object's second pattern into _perl_to_posix().
+       */
+      if (freg_object->fre_op_substitute == true)	{
+	if (intern__findf__perl_to_posix(freg_object->pat_storage->pattern2,
+					 freg_object) != RF_OPSUCC){
+	  intern_errormesg("Intern__findf__perl_to_posix");
+	  goto failure;
+	}
+      }
+      /* Compile the pattern. */
+      if (intern__findf__compile_pattern(freg_object) != RF_OPSUCC){
+	intern_errormesg("Intern__findf__compile_pattern");
+	goto failure;
+      }
+    }
     
   } /* for(patterns_c = 0...(each patterns)) */
   

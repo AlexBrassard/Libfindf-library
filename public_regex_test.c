@@ -52,11 +52,11 @@ int main(void)
       goto cleanup;
     }
   }
-  if (SU_strcpy(patterns[0], "/time/", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[0], "/\\Dt i# this is a comment\nme/x", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }
-  if (SU_strcpy(patterns[1], "s/a.b/abo/g", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[1], "s/a\\db/abo/g", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
   }
