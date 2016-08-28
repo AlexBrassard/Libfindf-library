@@ -52,7 +52,7 @@ int main(void)
       goto cleanup;
     }
   }
-  if (SU_strcpy(patterns[0], "/\\Dt i# this is a comment\nme/x", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[0], "<b<is>of>", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }

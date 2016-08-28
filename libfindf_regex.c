@@ -64,7 +64,7 @@ findf_regex_f* intern__findf__init_regex(void)
   to_init->fre_op_transliterate = false;
   to_init->fre_p1_compiled = false;
   to_init->fre_p2_compiled = false;
-
+  to_init->fre_paired_delimiter =false;
 
   return to_init;
 
@@ -377,6 +377,7 @@ int intern__findf__parse_match(char *pattern,
   size_t freg_object_tos = 0;
   size_t modifiers_tos = 0;
   size_t numof_seen_delimiter = 1;
+  size_t delimiter_pairs_c = 1; 
   char modifiers[FINDF_MAX_PATTERN_LEN];
   
 #ifndef MTOKEN
@@ -409,13 +410,52 @@ int intern__findf__parse_match(char *pattern,
     /* 
      * Check if MTOKEN is the pattern's delimiter 
      * and increment the counter. 
+     * If freg_object->fre_paired_delimiter is true,
+     * if token is delimiter increment delimiter_pairs_c
+     * else if token is close_delimiter decrement delimiter_pairs_c
+     *  if delimiter_pairs_c is 0, and there's still characters after, 
+     * they are modifiers, else the pattern is finished.
      */
-    if (MTOKEN == freg_object->delimiter){
-      numof_seen_delimiter++;
+    if (freg_object->fre_paired_delimiter == true){
+      if (delimiter_pairs_c <= 0){
+	intern__findf__push(MTOKEN, modifiers, &modifiers_tos);
+      }
+      else {
+	/* Delimiter is taken literaly */
+	if (MTOKEN == freg_object->delimiter){
+	  ++delimiter_pairs_c;
+	  intern__findf__push(MTOKEN, freg_object->pat_storage->pattern1, &freg_object_tos);
+	}
+	else if (MTOKEN == freg_object->close_delimiter){
+	  /* 
+	   * If we're in a nested expression m<b<o>b>, the inner < > are
+	   * part of the actual pattern while the outer < > are the expression's delimiters.
+	   * When delimiter_pairs_c is 1 and we hit a "close_delimiter", assume it's the
+	   * pattern's closing delimiter. 
+	   */
+	  if (delimiter_pairs_c > 1){
+	    intern__findf__push(MTOKEN, freg_object->pat_storage->pattern1, &freg_object_tos);
+	  }
+	  else {
+	    ++numof_seen_delimiter;
+	  }
+	  --delimiter_pairs_c;
+	  /* Get next token. */
+	}
+	else {
+	  /* Else it must be a regexp character. */
+	  intern__findf__push(MTOKEN, freg_object->pat_storage->pattern1, &freg_object_tos);
+	}
+      }
       token_ind++;
       continue;
     }
     else {
+      if (MTOKEN == freg_object->delimiter){
+	++token_ind;
+	++numof_seen_delimiter;
+	continue;
+      }
       /* 
        * If the expected number of delimiters is not reach,
        * MTOKEN is part of the regex pattern.
@@ -624,10 +664,34 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 
     /* 
      * Make sure the current token is a punctuation mark,
-     * if so, this token is the pattern's delimiter.
+     * check if it's a paired/non-paired delimiter.
+     * If it is, register it's closing delimiter type in the
+     * ->close_delimiter field of the object.
      */
     if (ispunct(ITOKEN)){
       freg_object->delimiter = ITOKEN;
+      switch (ITOKEN) {
+      case '{':
+	freg_object->fre_paired_delimiter = true;
+	freg_object->close_delimiter = '}';
+	break;
+      case '(':
+	freg_object->fre_paired_delimiter = true;
+	freg_object->close_delimiter = ')';
+	break;
+      case '<':
+	freg_object->fre_paired_delimiter = true;
+	freg_object->close_delimiter = '>';
+	break;
+      case '[':
+	freg_object->fre_paired_delimiter = true;
+	freg_object->close_delimiter = ']';
+	break;
+      default:
+	/* Assume non-paired delimiter. */
+	break;
+      }
+     
       ++token_ind;
     }
     else {
@@ -681,7 +745,7 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 	  goto failure;
 	}
       }
-      /* Compile the pattern. */
+      /* Compile the pattern(s). */
       if (intern__findf__compile_pattern(freg_object) != RF_OPSUCC){
 	intern_errormesg("Intern__findf__compile_pattern");
 	goto failure;
@@ -712,3 +776,26 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 }
 
 
+void pattern_debug_hook(findf_regex_f *freg_object)
+{
+  if (freg_object != NULL){
+    printf("boleol: %s\nnewline: %s\nicase: %s\nextended: %s\nglobal: %s\nop_match: %s\nop_substitute: %s\nop_transliterate: %s\np1_compiled: %s\np2_compiled %s\npaired_delimiter: %s\ndelimiter: %c\nclose_delimiter: %c\npattern1: %s\npattern2: %s\n\n",
+	   (freg_object->fre_modif_boleol == true) ? "true" : "false",
+	   (freg_object->fre_modif_newline == true) ? "true" : "false",
+	   (freg_object->fre_modif_icase == true) ? "true" : "false",
+	   (freg_object->fre_modif_ext == true) ? "true" : "false",
+	   (freg_object->fre_modif_global == true) ? "true" : "false",
+	   (freg_object->fre_op_match == true) ? "true" : "false",
+	   (freg_object->fre_op_substitute == true) ? "true" : "false",
+	   (freg_object->fre_op_transliterate == true) ? "true" : "false",
+	   (freg_object->fre_p1_compiled == true) ? "true" : "false",
+	   (freg_object->fre_p2_compiled == true) ? "true" : "false",
+	   (freg_object->fre_paired_delimiter == true) ? "true" : "false",
+	   freg_object->delimiter, freg_object->close_delimiter,
+	   freg_object->pat_storage->pattern1, freg_object->pat_storage->pattern2);
+  }
+  else{
+    printf("NULL argument\n\n");
+  }	   
+}
+   

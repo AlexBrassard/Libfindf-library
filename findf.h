@@ -89,17 +89,19 @@ typedef struct fstorage{
 
 /* Libfindf's regex data structure. */
 typedef struct fregex{
-  bool             fre_modif_boleol;         /* True when the '\m' modifier is activated. */
-  bool             fre_modif_newline;        /* True when the '\s' modifier is activated. */
-  bool             fre_modif_icase;          /* True when the '\i' modifier is activated. */
-  bool             fre_modif_ext;            /* True when the '\x' modifier is activated. */
-  bool             fre_modif_global;         /* True when the '\g' modifier is activated. */
+  bool             fre_modif_boleol;         /* True when the '/m' modifier is activated. */
+  bool             fre_modif_newline;        /* True when the '/s' modifier is activated. */
+  bool             fre_modif_icase;          /* True when the '/i' modifier is activated. */
+  bool             fre_modif_ext;            /* True when the '/x' modifier is activated. */
+  bool             fre_modif_global;         /* True when the '/g' modifier is activated. */
   bool             fre_op_match;             /* True when operation is match. */
   bool             fre_op_substitute;        /* True when operation is substitute. */
   bool             fre_op_transliterate;     /* True when operation is transliterate. */
-  bool             fre_p1_compiled;          /* True when ->pattern[0] has been regcompiled. */
-  bool             fre_p2_compiled;          /* True when ->pattern[1] has been regcompiled. */
+  bool             fre_p1_compiled;          /* True when ->pattern[0] has been regcompiled.(Ease freeing) */
+  bool             fre_p2_compiled;          /* True when ->pattern[1] has been regcompiled.(Ease freeing) */
+  bool             fre_paired_delimiter;     /* True when ->delimiter is one of '<' '(' '{' '[' . */
   char             delimiter;                /* The delimiter used by the pattern. */
+  char             close_delimiter;          /* The closing delimiter, only used with paired delimiters. */
   int              (*operation)(struct fregex*); /* A pointer to the operation to execute on the regex. */
   int              fre_op_return_val;        /* operation's return value. */
   regex_t          **pattern;                /* A compiled regex pattern via a call to regcomp(). */
