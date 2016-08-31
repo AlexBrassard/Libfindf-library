@@ -52,15 +52,15 @@ int main(void)
       goto cleanup;
     }
   }
-  if (SU_strcpy(patterns[0], "<b<is>of>", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[0], "<timezone>", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }
-  if (SU_strcpy(patterns[1], "s/a\\db/abo/g", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[1], "m/stringlen\\.c/g", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
   }
-  if (SU_strcpy(patterns[2], "tr/bcty/gfds/i", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[2], "m/popt/i", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
   }
@@ -77,6 +77,11 @@ int main(void)
     findf_perror("Failed to execute the search");
     goto cleanup;
   }
+  printf("Search's result(s):\n\n");
+  for (i = 0; i < sparam->search_results->position; i++){
+    printf("Result[%zu] is: [%s]\n", i, sparam->search_results->pathlist[i]);
+  }
+  printf("\n");
   
  cleanup:
   if (file2find){

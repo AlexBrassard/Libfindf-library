@@ -26,13 +26,16 @@
 #define ERROR -1
 
 /* Libfindf-regex contanst. */
-#define FRE_MATCH_EXPECT_DELIMITER 2
-#define FRE_SUBST_EXPECT_DELIMITER 3
+#define FRE_MATCH_EXPECT_DELIMITER 2  /* Number of expected delimiters in a match pattern. */
+#define FRE_SUBST_EXPECT_DELIMITER 3  /* Number of expected delimiters in a substitution pattern. */
+#define FRE_MAX_SUB_MATCHES 9         /* Maximum number of sub-matches captures by libfindf. */
+#define FRE_MATCH_UNSUCCESSFUL 2      /* Indicate an unsuccessful match, 0 == success (using RF_OPSUCC) . */
 
 /* The next 2 constants are arrays since we copy them one char at a time. */
 static const char FRE_DIGIT_RANGE[] = "[0-9]";
 static const char FRE_NOT_DIGIT_RANGE[] = "[^0-9]";
 
+						  
 /* 
  * Represents the dot '.' and dotdot '..' directories
  * and their respective lenghts.  We compare each entries of each 
@@ -147,9 +150,10 @@ void intern__findf__free_res(findf_results_f *to_free);
 
 /* Sort an array of pathnames. */
 int intern__findf__sortp(char **sort_buf,
-			 char **file2find,
+			 void **file2find,
 			 size_t sizeof_sort_buf,
-			 size_t sizeof_file2find);
+			 size_t sizeof_file2find,
+			 bool USING_REGEX);
 /* Rotate a buffer of type size_t* */
 int intern__findf__rotate_buffer(size_t *sorted_array,
 				 size_t ind_to_move,
@@ -169,11 +173,11 @@ int intern__findf__free_regarray(findf_regex_f **reg_array,
 findf_regex_f** intern__findf__init_parser(char **patterns,
 					   size_t numof_patterns);
 /* Parse a matching pattern. */
-int intern__findf__parse_match(char *pattern,
+int intern__findf__strip_match(char *pattern,
 			       size_t token_ind,
 			       findf_regex_f *freg_object);
 /* Parse a substitution or transliteration pattern. */
-int intern__findf__parse_substitute(char *pattern,
+int intern__findf__strip_substitute(char *pattern,
 				    size_t token_ind,
 				    findf_regex_f *freg_object);
 /* Check for unsupported escape sequences. */
@@ -198,7 +202,8 @@ int intern__findf__compile_pattern(findf_regex_f *freg_object);
 /* Fre pattern operations related routines. */
 
 /* Execute a pattern match operation. */
-int intern__findf__match_pattern(findf_regex_f *freg_object);
+int intern__findf__match_op(struct fregex *freg_object,
+			    char *filename);
 /* Execute a substitution operation. */
 
 #endif /* FINDF_PRIVATE_HEADER */

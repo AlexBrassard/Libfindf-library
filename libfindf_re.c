@@ -75,5 +75,9 @@ int findf_re(findf_param_f *sparam,
     return ERROR;
   }
   sparam->sizeof_reg_array = numof_patterns;
+  if (intern__findf__internal(sparam) != RF_OPSUCC){
+    intern_errormesg("Failed to execute the search");
+    return ERROR;
+  }
   return RF_OPSUCC;
 }

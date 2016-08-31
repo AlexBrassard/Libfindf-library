@@ -273,16 +273,33 @@ int intern__findf__internal(findf_param_f *callers_param)
        * sort function pointer, use sortp().
        */
     case SORTP: /* intern__findf__sortp() is the default behaviour. */   
-    default: 
-      if (intern__findf__sortp(callers_param->search_results->pathlist,
-			       callers_param->file2find,
-			       callers_param->search_results->position,
-			       callers_param->sizeof_file2find) != RF_OPSUCC){
-	intern_errormesg("Failed to sort callers_param's resutls.");
-	ERR = true;
-	goto advance_to_cleanup;
+    default:
+      /* Skip sorting if using regexes FOR TESTS ONLY. */
+      if (callers_param->sizeof_file2find == 0
+	  && callers_param->sizeof_reg_array > 0){
+	if (intern__findf__sortp(callers_param->search_results->pathlist,
+				 ((void**)callers_param->reg_array),
+				 callers_param->search_results->position,
+				 callers_param->sizeof_reg_array,
+				 true) != RF_OPSUCC){
+	  intern_errormesg("Failed to sort callers_param's results");
+	  ERR = true;
+	  goto advance_to_cleanup;
+	}
+	break;
       }
-      break;
+      else{
+	if (intern__findf__sortp(callers_param->search_results->pathlist,
+				 ((void**)callers_param->file2find),
+				 callers_param->search_results->position,
+				 callers_param->sizeof_file2find,
+				 false) != RF_OPSUCC){
+	  intern_errormesg("Failed to sort callers_param's results.");
+	  ERR = true;
+	  goto advance_to_cleanup;
+	}
+	break;
+      }
     }
   }
 

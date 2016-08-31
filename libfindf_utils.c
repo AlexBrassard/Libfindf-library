@@ -526,43 +526,71 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
 {
   size_t i = 0;
   size_t _file2find_len = 0;
+  bool ENTRY_MATCH_ONCE = false;   /* 
+				    * In order to avoid duplicate results when using both
+				    * filenames and regexes, the ENTRY_MATCH_ONCE flag is 
+				    * raised when a successful match has been added to the caller's
+				    * t_param->search_results list.
+				    */
+
   if(t_param->sizeof_file2find > 0){
     for (i = 0; i < t_param->sizeof_file2find ; i++){
+      /* 
+       * Don't bother looking at the other file2find filenames 
+       * if we matched this entry already. 
+       */
+      if (ENTRY_MATCH_ONCE == true){
+	break;
+      }
       _file2find_len = strnlen(t_param->file2find[i], F_MAXNAMELEN - 1);
       if (memcmp(t_param->file2find[i], entry_to_cmp, _file2find_len) == 0){
 	if (intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
 	  intern_errormesg("Failed to add a new element to a parameter's search_results list.\n");
-	  abort(); /* I think I'm being a little rude here.. */
+	  abort();
 	}
+	ENTRY_MATCH_ONCE = true;
       }
     }
   }
   /*
-   * Try to match each patterns against the filename,
-   * If it matches and the operation is substitute or transliterate,
-   * execute the operation.
-   * Test against disapearing files and the likes. 
+   * If t_param->sizeof_reg_array is bigger than 0, 
+   * for each findf_regex_f element of reg_array
+   * execute the t_param->reg_array[i]->operation,
+   * If it's a successful match op and ENTRY_MATCH_ONCE is false,
+   * add its entry_full_path to the t_param->search_results list,
+   * Raise the ENTRY_MATCH_ONCE FLAGS and continue.
+   * Else if it's a substitute or transliterate op,
+   * do the operation and add the modified entry_full_path to the
+   * t_param->search_results list. 
    */
-  /*  if (t_param->sizeof_reg_array > 0){*/
-    /* (SEE Descriptions/Regex_functions.txt first).
-     * For each patterns, 
-     * Call its reg_array[we]->operation, passing it the corresponding
-     * findf_regex_f object casted to void *.
-     * Once returned, check the reg_array[we]->return_val to see if
-     * operation was successful.
-     */
-  /*  for(i = 0; i < t_param->sizeof_reg_array; i++){
-      if (regexec(t_param->reg_array[i]->pattern,
-		  entry_to_cmp,
-		  0, NULL, 0) == 0){
-	if (intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
-	  intern_errormesg("Failed to add element to search_results list");
-	  abort();
+  if (t_param->sizeof_reg_array > 0){
+    for (i = 0; i < t_param->sizeof_reg_array; i++){
+      /* Execute the pattern's operation. */
+      t_param->reg_array[i]->operation(t_param->reg_array[i], entry_to_cmp);
+      if(t_param->reg_array[i]->fre_op_return_val == RF_OPSUCC){
+	if (t_param->reg_array[i]->fre_op_substitute == true
+	    || t_param->reg_array[i]->fre_op_transliterate == true) {
+	  /* 
+	   * Substitution and transliteration must return the modified pathname somehow. 
+	   * Modify the entry_full_path and add it to the results list. 
+	   * Then continue up top the loop right away.
+	   */
+	  /* 
+	   * If the ENTRY_MATCH_ONCE flag is true, remove the entry matched by 
+	   * a previous match??
+	   */
+	  ;
+	}
+	if (ENTRY_MATCH_ONCE == false){
+	  /* Add the entry to the results list. */
+	  if(intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
+	    intern_errormesg("Intern__findf__add_element failure");
+	    abort();
+	  }
 	}
       }
     }
-    }*/
-      
+  }
 } /* intern__findf__cmp_file2find() */
 
 
