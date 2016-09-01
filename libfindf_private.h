@@ -150,10 +150,9 @@ void intern__findf__free_res(findf_results_f *to_free);
 
 /* Sort an array of pathnames. */
 int intern__findf__sortp(char **sort_buf,
-			 void **file2find,
+			 char **file2find,
 			 size_t sizeof_sort_buf,
-			 size_t sizeof_file2find,
-			 bool USING_REGEX);
+			 size_t sizeof_file2find);
 /* Rotate a buffer of type size_t* */
 int intern__findf__rotate_buffer(size_t *sorted_array,
 				 size_t ind_to_move,

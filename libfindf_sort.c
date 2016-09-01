@@ -49,10 +49,10 @@ int intern__findf__rotate_buffer(size_t *sorted_array,  /* Buffer to rotate. */
  * reorganizing the original sort_buffer. 
  */
 int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
-			 void **file2find,         /* filenames or regex pattern to bucketize pathnames. */
+			 char **file2find,         /* filenames or regex pattern to bucketize pathnames. */
 			 size_t sizeof_sort_buf,   /* Number of pathnames in sort_buffer. */
-			 size_t sizeof_file2find,  /* Number of filenames in file2find. */
-			 bool USING_REGEX)         /* True when file2find are findf_regex_f objects. */
+			 size_t sizeof_file2find)  /* Number of filenames in file2find. */
+
 {
   /* Array of whole_buf indexes, grouped by file2find filenames. */
   size_t *sort_array = NULL;
@@ -67,8 +67,6 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
   size_t S1 = 0, S2 = 0;                 /* Counters, "string 1", "string 2". */
   size_t i = 0;                          /* Convinience counter. */
   char **temp_path = NULL;               /* To reorganize sort_buf; */
-  char **callers_file2find = NULL;       /* When using filenames to sort. */
-  findf_regex_f **freg_object = NULL;    /* When using regex patterns to sort. */
   bool ERR = false;                      /* True on error. */
   /*goto label sort_err_jmp;                Cleanup on exit. */
 
@@ -89,12 +87,6 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
     goto sort_err_jmp;
   }
 
-  if (USING_REGEX == true){
-    freg_object = (findf_regex_f**)file2find;
-  }
-  else{
-    callers_file2find = (char**)file2find;
-  }
 
   /* Allocate memory:  */
   if ((sort_array = calloc(sizeof_sort_buf, sizeof(size_t))) == NULL){
@@ -129,25 +121,17 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
   for (file2find_c = 0; file2find_c < sizeof_file2find; file2find_c++){
     /* Reset the size of sort_array, we're calculating the new size next. */
     sizeof_sort_array = 0;
-    for (i = 0; i < sizeof_sort_buf; i++)
-      if (USING_REGEX == true){
-	if (intern__findf__match_op(freg_object[file2find_c], sort_buffer[i]) == RF_OPSUCC){
-	  sort_array[sizeof_sort_array] = i;
-	  sorted_array[sizeof_sort_array] = i;
-	  ++sizeof_sort_array;
-	}
+    for (i = 0; i < sizeof_sort_buf; i++){
+      if (strstr(sort_buffer[i], file2find[file2find_c]) != NULL){
+	sort_array[sizeof_sort_array] = i;
+	sorted_array[sizeof_sort_array] = i;
+	sizeof_sort_array++;
       }
-      else{
-	if (strstr(sort_buffer[i], file2find[file2find_c]) != NULL){
-	  sort_array[sizeof_sort_array] = i;
-	  sorted_array[sizeof_sort_array] = i;
-	  sizeof_sort_array++;
-	}
-      }
+    }
     /* 
      * Get next file2find filename in case we did not find any 
      * match in the previous loop.
-     */
+     */ 
     if (sizeof_sort_array == 0) continue;
 
     /* Set our last position index to the last element of sort_array. */

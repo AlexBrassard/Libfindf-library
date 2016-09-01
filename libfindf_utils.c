@@ -373,6 +373,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   to_init->sarg = sarg;
   to_init->algorithm = algorithm;
   to_init->arg = arg;
+  to_init->sizeof_reg_array = 0;
   to_init->reg_array = NULL;
 
   return to_init;
@@ -587,6 +588,7 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
 	    intern_errormesg("Intern__findf__add_element failure");
 	    abort();
 	  }
+	  ENTRY_MATCH_ONCE = true;
 	}
       }
     }
@@ -939,4 +941,32 @@ void intern__findf__verify_search_type(findf_param_f *search_param)
     search_param->search_type = BFS;
     search_param->algorithm = intern__findf__BF_search;
   }
+}
+
+
+void print_param_hook(findf_param_f *param)
+{
+  size_t i = 0;
+  
+  if (param == NULL)
+    abort();
+
+  printf("file2find: %p\nsizeof_file2find: %zu\nsearch_roots: %p\nsizeof_search_roots: %zu\nsearch_results %p\ndept: %u\nsearch_type: %s\nsort_type: %s\nsort_f: %p\nsarg: %p\nalgorithm: %p\narg: %p\nsizeof_reg_array: %zu\nreg_array: %p\n\n",
+	 param->file2find, param->sizeof_file2find, param->search_roots, param->sizeof_search_roots, param->search_results,
+	 param->dept, (param->search_type == BFS) ? "BFS" : (param->search_type == DFS) ? "DFS" :
+	 (param->search_type == IDDFS) ? "IDDFS" : (param->search_type == IDBFS) ? "IDBFS" :
+	 (param->search_type == CUSTOM) ? "CUSTOM" : "Unknown",
+	 (param->sort_type == C_SORT) ? "Custom" : (param->sort_type == SORTP) ? "SORTP" : (param->sort_type == NONE) ?
+	 "NONE" : "Unknown", param->sort_f, param->sarg, param->algorithm, param->arg, param->sizeof_reg_array,
+	 param->reg_array);
+  
+}
+
+void print_array_hook(char **array, size_t numof_element)
+{
+  size_t i = 0;
+  printf("\n");
+  for (;i < numof_element; i++)
+    printf("element[%zu]: [%s]\n",i,array[i]);
+  printf("\n");
 }

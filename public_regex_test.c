@@ -13,19 +13,27 @@ int main(void)
   size_t numof_file2find = 0;
   size_t i = 0;
   size_t numof_search_roots = 1;
-  size_t numof_patterns = 3;
+  size_t numof_patterns = 1;
 
   /*  if ((file2find = calloc(numof_file2find, sizeof(char*))) == NULL){
     findf_perror("Calloc failure.");
     goto cleanup;
-    }
+  }
   for(i = 0; i < numof_file2find; i++){
     if ((file2find[i] = calloc(F_MAXNAMELEN, sizeof(char))) == NULL){
       findf_perror("Calloc failure.");
       goto cleanup;
     }
+  }
+  if (SU_strcpy(file2find[0], "stdio", F_MAXNAMELEN) == NULL){
+    findf_perror("SU_strcpy failure");
+    goto cleanup;
     }*/
-
+  /*  if (SU_strcpy(file2find[1], "stdlib", F_MAXNAMELEN) == NULL){
+    findf_perror("SU_strcpy failure");
+    goto cleanup;
+    }*/
+  
   /* Search's root. */
   if ((search_roots = calloc(numof_search_roots, sizeof(char*))) == NULL){
     findf_perror("Calloc failure");
@@ -56,14 +64,14 @@ int main(void)
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }
-  if (SU_strcpy(patterns[1], "m/stringlen\\.c/g", FINDF_MAX_PATTERN_LEN) == NULL){
+  /*  if (SU_strcpy(patterns[1], "m/stringlen\\.c/g", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
   }
   if (SU_strcpy(patterns[2], "m/popt/i", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy");
     goto cleanup;
-  }
+    }*/
 
   
   if ((sparam = findf_init_param(file2find, search_roots,
@@ -79,14 +87,16 @@ int main(void)
   }
   printf("Search's result(s):\n\n");
   for (i = 0; i < sparam->search_results->position; i++){
-    printf("Result[%zu] is: [%s]\n", i, sparam->search_results->pathlist[i]);
+    if (sparam->search_results->pathlist[i] != NULL){
+      printf("Result[%zu] is: [%s]\n", i, sparam->search_results->pathlist[i]);
+    }
   }
   printf("\n");
   
  cleanup:
-  if (file2find){
+  if (file2find != NULL){
     for (i = 0; i < numof_file2find; i++){
-      if (file2find[i]){
+      if (file2find[i] != NULL){
 	free(file2find[i]);
 	file2find[i] = NULL;
       }
@@ -94,9 +104,9 @@ int main(void)
     free(file2find);
     file2find = NULL;
   }
-  if (search_roots){
+  if (search_roots != NULL){
     for (i = 0; i < numof_search_roots; i++){
-      if (search_roots[i]){
+      if (search_roots[i] != NULL){
 	free(search_roots[i]);
 	search_roots[i] = NULL;
       }
@@ -104,9 +114,9 @@ int main(void)
     free(search_roots);
     search_roots = NULL;
   }
-  if (patterns){
+  if (patterns != NULL){
     for (i = 0; i < numof_patterns; i++){
-      if(patterns[i]){
+      if(patterns[i] != NULL){
 	free(patterns[i]);
 	patterns[i] = NULL;
       }
@@ -114,7 +124,7 @@ int main(void)
     free(patterns);
     patterns = NULL;
   }
-  if (sparam){
+  if (sparam != NULL){
     findf_destroy_param(sparam);
     sparam = NULL;
   }
