@@ -96,7 +96,6 @@ typedef struct fregex{
   bool             fre_modif_global;         /* True when the '/g' modifier is activated. */
   bool             fre_op_match;             /* True when operation is match. */
   bool             fre_op_substitute;        /* True when operation is substitute. */
-  bool             fre_op_transliterate;     /* True when operation is transliterate. */
   bool             fre_p1_compiled;          /* True when ->pattern[0] has been regcompiled.(to ease freeing) */
   bool             fre_paired_delimiter;     /* True when ->delimiter is one of '<' '(' '{' '[' . */
   char             delimiter;                /* The delimiter used by the pattern. */

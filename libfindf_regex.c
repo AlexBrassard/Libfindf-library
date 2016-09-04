@@ -3,7 +3,7 @@
  *
  *  Libfindf.so  -  Regular expression utilities.
  *
- *
+ *            
  *
  */
 
@@ -64,7 +64,6 @@ findf_regex_f* intern__findf__init_regex(void)
   to_init->fre_modif_global = false;
   to_init->fre_op_match = false;
   to_init->fre_op_substitute = false;
-  to_init->fre_op_transliterate = false;
   to_init->fre_p1_compiled = false;
   to_init->fre_paired_delimiter =false;
 
@@ -171,7 +170,7 @@ int intern__findf__free_regarray(findf_regex_f** to_free,
   to_free = NULL;
   
   return RF_OPSUCC;
-}
+} /* intern__findf__free_regarray() */
 
 
 
@@ -590,18 +589,18 @@ int intern__findf__compile_pattern(findf_regex_f *freg_object)
    * compile the first pattern of the object's ->pat_storage field.
    * Transliteration does not make uses of regex expressions.
    */
-  if (freg_object->fre_op_transliterate == false){
-    if (regcomp(freg_object->pattern,
-		freg_object->pat_storage->pattern1,
-		(freg_object->fre_modif_icase == true) ? REG_ICASE : 0 |
-		(freg_object->fre_modif_newline == true) ? 0 : REG_NEWLINE |
-		REG_EXTENDED ) != 0) {
-      intern_errormesg("Regcomp");
-      return ERROR;
-    }
-    freg_object->fre_p1_compiled = true; /* To ease freeing */
-  }
 
+  if (regcomp(freg_object->pattern,
+	      freg_object->pat_storage->pattern1,
+	      (freg_object->fre_modif_icase == true) ? REG_ICASE : 0 |
+	      (freg_object->fre_modif_newline == true) ? 0 : REG_NEWLINE |
+	      REG_EXTENDED ) != 0) {
+    intern_errormesg("Regcomp");
+    return ERROR;
+  }
+  freg_object->fre_p1_compiled = true; /* To ease freeing */
+  
+  
   return RF_OPSUCC;
 } /* intern__findf__compile_pattern() */
 
@@ -709,17 +708,6 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
       /* Plugin the _substitute_op() here. */
       token_ind++;
       break;
-    case 't': /* Transliteration tr/ */
-      if (patterns[patterns_c][token_ind + 1] == 'r'){
-	freg_object->fre_op_transliterate = true;
-	/* Plugin the _transliterate_op() here. */
-	token_ind += 2;
-	break;
-      }
-      else {
-	intern_errormesg("Unkown operation in pattern");
-	goto failure;
-      }
     default:
       if (ispunct(ITOKEN)){
 	/* Assume a match operation. */
@@ -782,8 +770,7 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 	goto failure;
       }
     }
-    else if (freg_object->fre_op_substitute == true
-	     || freg_object->fre_op_transliterate == true){
+    else if (freg_object->fre_op_substitute == true){
       if (intern__findf__strip_substitute(patterns[patterns_c],
 					  token_ind,
 					  reg_array[patterns_c]) != RF_OPSUCC){
@@ -798,22 +785,21 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 
     /* 
      * Convert the stripped off Perl-like pattern into
-     * a fully POSIX ERE conformant pattern only if it's not
-     * for a transliteration operation.
+     * a fully POSIX ERE conformant pattern 
      */
-    if (freg_object->fre_op_transliterate == false){
-      if (intern__findf__perl_to_posix(freg_object->pat_storage->pattern1,
-				       freg_object) != RF_OPSUCC){
-	intern_errormesg("Intern__findf__perl_to_posix");
-	goto failure;
-      }
-      
-      /* Compile the pattern. */
-      if (intern__findf__compile_pattern(freg_object) != RF_OPSUCC){
-	intern_errormesg("Intern__findf__compile_pattern");
-	goto failure;
-      }
+
+    if (intern__findf__perl_to_posix(freg_object->pat_storage->pattern1,
+				     freg_object) != RF_OPSUCC){
+      intern_errormesg("Intern__findf__perl_to_posix");
+      goto failure;
     }
+    
+    /* Compile the pattern. */
+    if (intern__findf__compile_pattern(freg_object) != RF_OPSUCC){
+      intern_errormesg("Intern__findf__compile_pattern");
+      goto failure;
+    }
+    
     
   } /* for(patterns_c = 0...(each patterns)) */
   
@@ -842,7 +828,7 @@ findf_regex_f** intern__findf__init_parser(char **patterns,
 void print_pattern_hook(findf_regex_f *freg_object)
 {
   if (freg_object != NULL){
-    printf("boleol: %s\nnewline: %s\nicase: %s\nextended: %s\nglobal: %s\nop_match: %s\nop_substitute: %s\nop_transliterate: %s\np1_compiled: %s\npaired_delimiter: %s\ndelimiter: %c\nclose_delimiter: %c\npattern1: %s\npattern2: %s\n\n",
+    printf("boleol: %s\nnewline: %s\nicase: %s\nextended: %s\nglobal: %s\nop_match: %s\nop_substitute: %s\np1_compiled: %s\npaired_delimiter: %s\ndelimiter: %c\nclose_delimiter: %c\npattern1: %s\npattern2: %s\n\n",
 	   (freg_object->fre_modif_boleol == true) ? "true" : "false",
 	   (freg_object->fre_modif_newline == true) ? "true" : "false",
 	   (freg_object->fre_modif_icase == true) ? "true" : "false",
@@ -850,7 +836,6 @@ void print_pattern_hook(findf_regex_f *freg_object)
 	   (freg_object->fre_modif_global == true) ? "true" : "false",
 	   (freg_object->fre_op_match == true) ? "true" : "false",
 	   (freg_object->fre_op_substitute == true) ? "true" : "false",
-	   (freg_object->fre_op_transliterate == true) ? "true" : "false",
 	   (freg_object->fre_p1_compiled == true) ? "true" : "false",
 	   (freg_object->fre_paired_delimiter == true) ? "true" : "false",
 	   freg_object->delimiter, freg_object->close_delimiter,

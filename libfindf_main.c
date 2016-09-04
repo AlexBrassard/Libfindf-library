@@ -274,8 +274,15 @@ int intern__findf__internal(findf_param_f *callers_param)
        */
     case SORTP: /* intern__findf__sortp() is the default behaviour. */   
     default:
-      if (callers_param->sizeof_file2find == 0) /* Skip regex for now. */
+      if (callers_param->sizeof_file2find > 0 /* TEST ONLY */
+	  && callers_param->sizeof_reg_array > 0){
+	/* REMEMBER TO CHECK THE RETURN VALUE ONCE COMPLETED. */
+	callers_param->reg_array = intern__findf__init_fre_keys(callers_param->reg_array,
+								callers_param->file2find,
+								&(callers_param->sizeof_reg_array),
+								callers_param->sizeof_file2find);
 	break;
+      }
       if (intern__findf__sortp(callers_param->search_results->pathlist,
 			       callers_param->file2find,
 			       callers_param->search_results->position,

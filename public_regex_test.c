@@ -10,12 +10,12 @@ int main(void)
   char **patterns = NULL;
   char **file2find = NULL;
   char **search_roots = NULL;
-  size_t numof_file2find = 0;
+  size_t numof_file2find = 1;
   size_t i = 0;
   size_t numof_search_roots = 1;
   size_t numof_patterns = 1;
 
-  /*  if ((file2find = calloc(numof_file2find, sizeof(char*))) == NULL){
+  if ((file2find = calloc(numof_file2find, sizeof(char*))) == NULL){
     findf_perror("Calloc failure.");
     goto cleanup;
   }
@@ -25,11 +25,12 @@ int main(void)
       goto cleanup;
     }
   }
-  if (SU_strcpy(file2find[0], "stdio", F_MAXNAMELEN) == NULL){
+  if (SU_strcpy(file2find[0], "stringlen.c", F_MAXNAMELEN) == NULL){
     findf_perror("SU_strcpy failure");
     goto cleanup;
-    }*/
-  /*  if (SU_strcpy(file2find[1], "stdlib", F_MAXNAMELEN) == NULL){
+    }
+  /*
+    if (SU_strcpy(file2find[1], "stdlib", F_MAXNAMELEN) == NULL){
     findf_perror("SU_strcpy failure");
     goto cleanup;
     }*/

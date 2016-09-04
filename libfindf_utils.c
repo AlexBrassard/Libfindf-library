@@ -569,8 +569,7 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
       /* Execute the pattern's operation. */
       t_param->reg_array[i]->operation(t_param->reg_array[i], entry_to_cmp);
       if(t_param->reg_array[i]->fre_op_return_val == RF_OPSUCC){
-	if (t_param->reg_array[i]->fre_op_substitute == true
-	    || t_param->reg_array[i]->fre_op_transliterate == true) {
+	if (t_param->reg_array[i]->fre_op_substitute == true) {
 	  /* 
 	   * Substitution and transliteration must return the modified pathname somehow. 
 	   * Modify the entry_full_path and add it to the results list. 
@@ -944,23 +943,6 @@ void intern__findf__verify_search_type(findf_param_f *search_param)
 }
 
 
-void print_param_hook(findf_param_f *param)
-{
-  size_t i = 0;
-  
-  if (param == NULL)
-    abort();
-
-  printf("file2find: %p\nsizeof_file2find: %zu\nsearch_roots: %p\nsizeof_search_roots: %zu\nsearch_results %p\ndept: %u\nsearch_type: %s\nsort_type: %s\nsort_f: %p\nsarg: %p\nalgorithm: %p\narg: %p\nsizeof_reg_array: %zu\nreg_array: %p\n\n",
-	 param->file2find, param->sizeof_file2find, param->search_roots, param->sizeof_search_roots, param->search_results,
-	 param->dept, (param->search_type == BFS) ? "BFS" : (param->search_type == DFS) ? "DFS" :
-	 (param->search_type == IDDFS) ? "IDDFS" : (param->search_type == IDBFS) ? "IDBFS" :
-	 (param->search_type == CUSTOM) ? "CUSTOM" : "Unknown",
-	 (param->sort_type == C_SORT) ? "Custom" : (param->sort_type == SORTP) ? "SORTP" : (param->sort_type == NONE) ?
-	 "NONE" : "Unknown", param->sort_f, param->sarg, param->algorithm, param->arg, param->sizeof_reg_array,
-	 param->reg_array);
-  
-}
 
 void print_array_hook(char **array, size_t numof_element)
 {

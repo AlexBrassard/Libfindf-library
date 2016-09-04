@@ -148,6 +148,13 @@ void intern__findf__free_res(findf_results_f *to_free);
 
 /* Internal pathname sorting related routines. */
 
+/* Convert a filename into a pattern, later used as sorting keys. */
+char* intern__findf__string_to_regex(char *filename);
+/* Prepare filenames and patterns to be used as regex sorting keys. */
+findf_regex_f** intern__findf__init_fre_keys(findf_regex_f **reg_array,
+					     char **filenames,
+					     size_t *sizeof_reg_array,
+					     size_t numof_filenames);
 /* Sort an array of pathnames. */
 int intern__findf__sortp(char **sort_buf,
 			 char **file2find,
