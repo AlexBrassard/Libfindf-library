@@ -122,6 +122,39 @@ findf_regex_f** intern__findf__init_fre_keys(findf_regex_f **reg_array,  /* The 
   }
   /* Adjust sizeof_reg_array to new_size. */
   (*sizeof_reg_array) = new_size;
+  
+  /*
+   * Find each substitution operation in reg_array and
+   * convert their substitute pattern (->pat_storage->pattern2)
+   * into a match operation pattern.
+   */
+  for(freg_object_c = 0; freg_object_c < *sizeof_reg_array; freg_object_c++){
+    if (new_reg_array[freg_object_c]->fre_op_substitute == true) {
+      /* 
+       * If the match pattern of the substitution operation was compiled (it should be),
+       * regfree it so we can reuse the regex_t*.
+       */
+      if (new_reg_array[freg_object_c]->fre_p1_compiled == true) {
+	regfree(new_reg_array[freg_object_c]->pattern);
+      }
+      memset(new_reg_array[freg_object_c]->pat_storage->pattern1,
+	     0,
+	     FINDF_MAX_PATTERN_LEN);
+      /* Convert the substitute pattern into a match pattern. */
+      if ((new_reg_array[freg_object_c]->pat_storage->pattern1 =
+	   intern__findf__string_to_regex(new_reg_array[freg_object_c]->pat_storage->pattern2)) == NULL){
+	intern_errormesg("Failed to convert substitute pattern into match pattern");
+	goto init_key_err_jmp;
+      }
+      /* Compile the new pattern. */
+      if (intern__findf__compile_pattern(new_reg_array[freg_object_c]) != RF_OPSUCC){
+	intern_errormesg("Failed to compile new match pattern");
+	goto init_key_err_jmp;
+      }
+    }
+  }
+
+  
   return new_reg_array;
   
 

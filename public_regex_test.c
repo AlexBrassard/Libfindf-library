@@ -61,7 +61,7 @@ int main(void)
       goto cleanup;
     }
   }
-  if (SU_strcpy(patterns[0], "<timezone>", FINDF_MAX_PATTERN_LEN) == NULL){
+  if (SU_strcpy(patterns[0], "/b.b/", FINDF_MAX_PATTERN_LEN) == NULL){
     findf_perror("SU_strcpy failure");
     goto cleanup;
   }
