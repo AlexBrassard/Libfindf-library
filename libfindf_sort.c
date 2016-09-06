@@ -18,6 +18,7 @@
 #include <findf.h>
 #include "libfindf_private.h"
 
+#ifdef FINDF_WITH_REGEX
 /* Convert an already initialized char* filename into a FRE compatible char* filename. */
 char* intern__findf__string_to_regex(char *filename)
 {
@@ -71,9 +72,9 @@ char* intern__findf__string_to_regex(char *filename)
 
 } /* intern__findf__string_to_regex() */
 
-
+/* changed findf_regexf** to int to remove compile-time error while working on libfre */
 /* Prepare filenames and/or regex patterns to be used as sorting keys. */
-findf_regex_f** intern__findf__init_fre_keys(findf_regex_f **reg_array,  /* The array of FRE objects to extend. */
+int intern__findf__init_fre_keys(findf_regex_f **reg_array,  /* The array of FRE objects to extend. */
 					     char **filenames,           /* An array of filenames to convert into patterns. */
 					     size_t *sizeof_reg_array,    /* Current number of elements in reg_array. */
 					     size_t numof_filenames)     /* Number of strings in filenames. */
@@ -166,25 +167,6 @@ findf_regex_f** intern__findf__init_fre_keys(findf_regex_f **reg_array,  /* The 
 } /* intern__findf__init_fre_keys() */
 					     
 
-/* Rotate a buffer of array's indexes "counter-clockwise" */
-inline int intern__findf__rotate_buffer(size_t *sorted_array,  /* Buffer to rotate. */
-					size_t ind_to_move,    /* The index we're moving. */
-					size_t *last_pos_ind)  /* 
-								* Address of the index of the last
-								* non-sorted position of sorted_array. 
-								*/
-{
-
-  size_t temp_index = sorted_array[ind_to_move];
-  size_t i = 0;
-  if (ind_to_move < *last_pos_ind){
-    for (i = ind_to_move; i < *last_pos_ind; i++) 
-      sorted_array[i] = sorted_array[i + 1];
-    sorted_array[(*last_pos_ind)--] = temp_index;
-  }
-  return RF_OPSUCC;
-
-} /* intern__findf__rotate_buffer() */
 
 
 /* 
@@ -277,6 +259,30 @@ inline size_t** intern__findf__bucketize(char **buf_tosort,
   
 } /* intern__findf__bucketize() */
 
+#endif
+/* Functions above this point are to be used only when regex support will be added. */
+
+
+/* Rotate a buffer of array's indexes "counter-clockwise" */
+inline int intern__findf__rotate_buffer(size_t *sorted_array,  /* Buffer to rotate. */
+					size_t ind_to_move,    /* The index we're moving. */
+					size_t *last_pos_ind)  /* 
+								* Address of the index of the last
+								* non-sorted position of sorted_array. 
+								*/
+{
+
+  size_t temp_index = sorted_array[ind_to_move];
+  size_t i = 0;
+  if (ind_to_move < *last_pos_ind){
+    for (i = ind_to_move; i < *last_pos_ind; i++) 
+      sorted_array[i] = sorted_array[i + 1];
+    sorted_array[(*last_pos_ind)--] = temp_index;
+  }
+  return RF_OPSUCC;
+
+} /* intern__findf__rotate_buffer() */
+
 
 /*
  * Sort an array of pathnames.
@@ -307,12 +313,6 @@ int intern__findf__sortp(char **sort_buffer,       /* Pathnames to sort. */
   /*goto label sort_err_jmp;                Cleanup on exit. */
 
 
-  /*
-   * Every time strstr matches a pathname, put its index in matched_buffer.
-   *
-   */
-
-  
 #ifdef FINDF_SORT_DEBUG
   size_t debug_c = 0;                    /* For debug purposes. */
 #endif /* FINDF_SORT_DEBUG */

@@ -22,7 +22,7 @@ LDFLAGS = ${GNULDFLAGS}          # Your linker's flags.
 
 OBJECTS = libfindf_init.o libfindf_utils.o libfindf_main.o libfindf_sort.o \
           libfindf_Putils.o libfindf_std.o libfindf_adv.o libfindf_fg.o \
-          libfindf_regex.o libfindf_re.o
+#          libfindf_regex.o libfindf_re.o
 
 libname = libfindf.so.1.0.0
 
@@ -41,8 +41,8 @@ libfindf_main.o : libfindf_main.c libfindf_private.h findf.h
 libfindf_sort.o : libfindf_sort.c libfindf_private.h findf.h
 	${CC} ${CFLAGS} -fPIC -c libfindf_sort.c ${LDFLAGS}
 
-libfindf_regex.o : libfindf_regex.c libfindf_private.h findf.h
-	${CC} ${CFLAGS} -fPIC -c libfindf_regex.c ${LDFLAGS}
+#libfindf_regex.o : libfindf_regex.c libfindf_private.h findf.h
+#	${CC} ${CFLAGS} -fPIC -c libfindf_regex.c ${LDFLAGS}
 
 libfindf_Putils.o : libfindf_Putils.c libfindf_private.h findf.h
 	${CC} ${CFLAGS} -fPIC -c libfindf_Putils.c ${LDFLAGS}
@@ -56,8 +56,8 @@ libfindf_adv.o : libfindf_adv.c libfindf_private.h findf.h
 libfindf_fg.o : libfindf_fg.c libfindf_private.h findf.h
 	${CC} ${CFLAGS} -fPIC -c libfindf_fg.c ${LDFLAGS}
 
-libfindf_re.o : libfindf_re.c libfindf_private.h findf.h
-	${CC} ${CFLAGS} -fPIC -c libfindf_re.c ${LDFLAGS}
+#libfindf_re.o : libfindf_re.c libfindf_private.h findf.h
+#	${CC} ${CFLAGS} -fPIC -c libfindf_re.c ${LDFLAGS}
 
 
 .PHONY : clean

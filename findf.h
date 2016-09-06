@@ -73,41 +73,6 @@ typedef enum sort_type_f {
 } findf_sort_type_f;
 
 
-/*
- * For match op:         pattern1: Stripped off pattern.
- *                       pattern2: Unused.
- * For substitute op:    pattern1: Stripped off "to replace" pattern.
- *                       pattern2: Stripped off replacement pattern.
- * For transliterate op: pattern1: List of characters to be replaced.
- *                       pattern2: List of replacement characters.
- */
-typedef struct fstorage{
-  char             *pattern1;
-  char             *pattern2;
-
-} findf_opstore_f;
-
-/* Libfindf's regex data structure. */
-typedef struct fregex{
-  bool             fre_modif_boleol;         /* True when the '/m' modifier is activated. */
-  bool             fre_modif_newline;        /* True when the '/s' modifier is activated. */
-  bool             fre_modif_icase;          /* True when the '/i' modifier is activated. */
-  bool             fre_modif_ext;            /* True when the '/x' modifier is activated. */
-  bool             fre_modif_global;         /* True when the '/g' modifier is activated. */
-  bool             fre_op_match;             /* True when operation is match. */
-  bool             fre_op_substitute;        /* True when operation is substitute. */
-  bool             fre_p1_compiled;          /* True when ->pattern[0] has been regcompiled.(to ease freeing) */
-  bool             fre_paired_delimiter;     /* True when ->delimiter is one of '<' '(' '{' '[' . */
-  char             delimiter;                /* The delimiter used by the pattern. */
-  char             close_delimiter;          /* The closing delimiter, only used with paired delimiters. */
-  int              (*operation)(struct fregex*, char *); /* A pointer to the operation to execute on the regex. */
-  int              fre_op_return_val;        /* operation's return value. */
-  regex_t          *pattern;                 /* A compiled regex pattern,  via a call to regcomp(). */
-  findf_opstore_f  *pat_storage;             /* To hold stripped off, unmodified patterns. */
-  char             **sub_match;              /* Array of 9 strings to hold submatches. */
-  
-} findf_regex_f;
-
 /* Libfindf search parameter data structure. */
 typedef struct srch_param_f {
   char              **file2find;            /* Array of strings (Filenames). */
@@ -123,7 +88,7 @@ typedef struct srch_param_f {
   void              *(*algorithm)(void *);  /* Pointer to a custom search algorithm. */
   void              *arg;                   /* Argument passed to a custom search algorithm. */
   size_t            sizeof_reg_array;       /* Number of element in the reg_array array. */
-  findf_regex_f     **reg_array;            /* Used by findf_re to do a regex-based search. */
+  //  findf_regex_f     **reg_array;            /* Used by findf_re to do a regex-based search. */
 
 } findf_param_f;
 

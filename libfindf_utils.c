@@ -374,7 +374,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
   to_init->algorithm = algorithm;
   to_init->arg = arg;
   to_init->sizeof_reg_array = 0;
-  to_init->reg_array = NULL;
+  /*  to_init->reg_array = NULL;*/
 
   return to_init;
 
@@ -384,7 +384,7 @@ findf_param_f *intern__findf__init_param(char **_file2find,
     perror(error_mesg);
   if (to_init){
     /* Make sure all pointers points to NULL. */
-    to_init->reg_array = NULL;
+    /*    to_init->reg_array = NULL;*/
     to_init->arg = NULL;
     to_init->algorithm = NULL;
     to_init->sarg = NULL;
@@ -441,9 +441,9 @@ int intern__findf__free_param(findf_param_f *to_free)
     /* Print what just happened and continue. */
     intern_errormesg("Failed to release resources of a parameter's list.\n");
   }
-  if (to_free->reg_array != NULL){
+  /*  if (to_free->reg_array != NULL){
     intern__findf__free_regarray(to_free->reg_array, to_free->sizeof_reg_array);
-  }
+    }*/
 
   to_free->search_roots = NULL;
   to_free->search_results = NULL;
@@ -452,7 +452,7 @@ int intern__findf__free_param(findf_param_f *to_free)
   to_free->sarg = NULL;
   to_free->algorithm = NULL;
   to_free->arg = NULL;
-  to_free->reg_array = NULL;
+  /*  to_free->reg_array = NULL;*/
 
   free(to_free);
   /*  to_free = NULL;*/
@@ -554,6 +554,7 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
     }
   }
   /*
+   COMMENTED while working on libfre.
    * If t_param->sizeof_reg_array is bigger than 0, 
    * for each findf_regex_f element of reg_array
    * execute the t_param->reg_array[i]->operation,
@@ -564,12 +565,12 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
    * do the operation and add the modified entry_full_path to the
    * t_param->search_results list. 
    */
-  if (t_param->sizeof_reg_array > 0){
-    for (i = 0; i < t_param->sizeof_reg_array; i++){
+  /*  if (t_param->sizeof_reg_array > 0){
+      for (i = 0; i < t_param->sizeof_reg_array; i++){*/
       /* Execute the pattern's operation. */
-      t_param->reg_array[i]->operation(t_param->reg_array[i], entry_to_cmp);
+  /*      t_param->reg_array[i]->operation(t_param->reg_array[i], entry_to_cmp);
       if(t_param->reg_array[i]->fre_op_return_val == RF_OPSUCC){
-	if (t_param->reg_array[i]->fre_op_substitute == true) {
+      if (t_param->reg_array[i]->fre_op_substitute == true) {*/
 	  /* 
 	   * Substitution and transliteration must return the modified pathname somehow. 
 	   * Modify the entry_full_path and add it to the results list. 
@@ -579,10 +580,10 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
 	   * If the ENTRY_MATCH_ONCE flag is true, remove the entry matched by 
 	   * a previous match??
 	   */
-	  ;
+  /*  ;
 	}
-	if (ENTRY_MATCH_ONCE == false){
-	  /* Add the entry to the results list. */
+	if (ENTRY_MATCH_ONCE == false){*/
+	  /* Add the entry to the results list. 
 	  if(intern__findf__add_element(entry_full_path, t_param->search_results) != RF_OPSUCC){
 	    intern_errormesg("Intern__findf__add_element failure");
 	    abort();
@@ -591,7 +592,7 @@ void intern__findf__cmp_file2find(findf_param_f *t_param,
 	}
       }
     }
-  }
+    }*/
 } /* intern__findf__cmp_file2find() */
 
 

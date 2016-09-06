@@ -90,16 +90,8 @@ int intern__findf__internal(findf_param_f *callers_param)
       goto advance_to_cleanup;
     }
     /* Add the caller's pattern array to the parameter object. */
-    threads_params[i]->sizeof_reg_array = callers_param->sizeof_reg_array;
-    threads_params[i]->reg_array = callers_param->reg_array;
-    /*
-    if ((threads_params[i]->reg_array = intern__findf__copy_regarray(callers_param->reg_array,
-								     callers_param->sizeof_reg_array)) == NULL){
-      intern_errormesg("Failed to copy reg_array to a thread's search parameter");
-      ERR = true;
-      goto advance_to_cleanup;
-      }*/
-      
+    /*    threads_params[i]->sizeof_reg_array = callers_param->sizeof_reg_array;
+	  threads_params[i]->reg_array = callers_param->reg_array;*/
   }
 
   /* Execution. */
@@ -274,15 +266,16 @@ int intern__findf__internal(findf_param_f *callers_param)
        */
     case SORTP: /* intern__findf__sortp() is the default behaviour. */   
     default:
-      if (callers_param->sizeof_file2find > 0 /* TEST ONLY */
+      /*if (callers_param->sizeof_file2find > 0 )
+						  ->> Commented while working on libfre. 
 	  && callers_param->sizeof_reg_array > 0){
-	/* REMEMBER TO CHECK THE RETURN VALUE ONCE COMPLETED. */
+
 	callers_param->reg_array = intern__findf__init_fre_keys(callers_param->reg_array,
 								callers_param->file2find,
 								&(callers_param->sizeof_reg_array),
 								callers_param->sizeof_file2find);
 	break;
-      }
+	}*/
       if (intern__findf__sortp(callers_param->search_results->pathlist,
 			       callers_param->file2find,
 			       callers_param->search_results->position,
@@ -309,7 +302,7 @@ int intern__findf__internal(findf_param_f *callers_param)
     for (i = 0; i < thread_pool->num_of_threads; i++){
       if (threads_params[i]){
 	/* NULL out copies of the callers_param->reg_array we've made earlier. */
-	threads_params[i]->reg_array = NULL;
+	/*	threads_params[i]->reg_array = NULL;*/
 	if (intern__findf__free_param(threads_params[i]) != RF_OPSUCC){
 	  intern_errormesg("Failed to release an internal parameter.\n");
 	  /* Don't return an error, break out the loop and continue freeing. */

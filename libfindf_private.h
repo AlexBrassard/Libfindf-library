@@ -25,16 +25,6 @@
 /* Represents an error. */
 #define ERROR -1
 
-/* Libfindf-regex contanst. */
-#define FRE_MATCH_EXPECT_DELIMITER 2  /* Number of expected delimiters in a match pattern. */
-#define FRE_SUBST_EXPECT_DELIMITER 3  /* Number of expected delimiters in a substitution pattern. */
-#define FRE_MAX_SUB_MATCHES 9         /* Maximum number of sub-matches captures by libfindf. */
-#define FRE_MATCH_UNSUCCESSFUL 2      /* Indicate an unsuccessful match, 0 == success (using RF_OPSUCC) . */
-
-/* The next 2 constants are arrays since we copy them one char at a time. */
-static const char FRE_DIGIT_RANGE[] = "[0-9]";
-static const char FRE_NOT_DIGIT_RANGE[] = "[^0-9]";
-
 						  
 /* 
  * Represents the dot '.' and dotdot '..' directories
@@ -150,11 +140,11 @@ void intern__findf__free_res(findf_results_f *to_free);
 
 /* Convert a filename into a pattern, later used as sorting keys. */
 char* intern__findf__string_to_regex(char *filename);
-/* Prepare filenames and patterns to be used as regex sorting keys. */
+/* Prepare filenames and patterns to be used as regex sorting keys. 
 findf_regex_f** intern__findf__init_fre_keys(findf_regex_f **reg_array,
 					     char **filenames,
 					     size_t *sizeof_reg_array,
-					     size_t numof_filenames);
+					     size_t numof_filenames);*/
 /* Sort an array of pathnames. */
 int intern__findf__sortp(char **sort_buf,
 			 char **file2find,
@@ -166,50 +156,6 @@ int intern__findf__rotate_buffer(size_t *sorted_array,
 				 size_t *last_pos_ind);
 
 
-/* Fre (findf-regex) pattern parsing related routines. */
-
-/* Allocate memory for a single findf_regex_f object. */
-findf_regex_f* intern__findf__init_regex(void);
-/* Release resources of a findf_regex_f object. */
-int intern__findf__free_regex(findf_regex_f *to_free);
-/* Release resources of an array of findf_regex_f object. */
-int intern__findf__free_regarray(findf_regex_f **reg_array,
-				 size_t numof_patterns);
-/* Initialize the regex parser. */
-findf_regex_f** intern__findf__init_parser(char **patterns,
-					   size_t numof_patterns);
-/* Parse a matching pattern. */
-int intern__findf__strip_match(char *pattern,
-			       size_t token_ind,
-			       findf_regex_f *freg_object);
-/* Parse a substitution or transliteration pattern. */
-int intern__findf__strip_substitute(char *pattern,
-				    size_t token_ind,
-				    findf_regex_f *freg_object);
-/* Check for unsupported escape sequences. */
-int intern__findf__validate_esc_seq(char token,
-				    char *buffer,
-				    size_t *buf_ind,
-				    size_t *buf_len);
-/* Validate pattern's modifier(s). */
-int intern__findf__validate_modif(char *modifiers,
-				  findf_regex_f *freg_object);
-/* Skip extended pattern's comments. */
-void intern__findf__skip_comments(char *pattern,
-				  size_t *cur_ind,
-				  size_t *pattern_len);
-/* Convert Perl-like syntax into POSIX ere syntax. */
-int intern__findf__perl_to_posix(char *pattern,
-				 findf_regex_f *freg_object);
-/* Compile a POSIX regex pattern. */
-int intern__findf__compile_pattern(findf_regex_f *freg_object);
-
-
-/* Fre pattern operations related routines. */
-
-/* Execute a pattern match operation. */
-int intern__findf__match_op(struct fregex *freg_object,
-			    char *filename);
 /* Execute a substitution operation. */
 
 #endif /* FINDF_PRIVATE_HEADER */
